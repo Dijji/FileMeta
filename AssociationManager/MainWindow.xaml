@@ -1,0 +1,114 @@
+﻿<!--// Copyright (c) 2013, Dijii, and released under the Common Public License.  This, with other relevant licenses, can be found in the root of this distribution.
+-->
+    <Window x:Uid="Window_1" x:Class="FileMetadataAssociationManager.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="File Meta Association Manager" Height="800" Width="1000" FontSize="12" Loaded="Window_Loaded" Icon="/FileMetaAssociationManager;component/Resources/tag.ico">
+    <Window.Resources>
+        <Style x:Uid="Style_1" TargetType="Label" x:Key="ColorByRestriction">
+            <Style.Triggers>
+                <DataTrigger x:Uid="DataTrigger_1" Binding="{Binding Path=RestrictionLevel}" Value="1">
+                    <Setter x:Uid="Setter_1" Property="Background" Value="#EEAD0E"/>
+                </DataTrigger>
+                <DataTrigger x:Uid="DataTrigger_2" Binding="{Binding Path=RestrictionLevel}" Value="2">
+                    <Setter x:Uid="Setter_2" Property="Background" Value="#FF82AB"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+    <Grid x:Uid="Grid_1">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition x:Uid="ColumnDefinition_1" Width="1*"/>
+            <ColumnDefinition x:Uid="ColumnDefinition_2" Width="3*"/>
+        </Grid.ColumnDefinitions>
+        <Grid x:Uid="Grid_2" Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition x:Uid="RowDefinition_1" Height="30"/>
+                <RowDefinition x:Uid="RowDefinition_2"/>
+            </Grid.RowDefinitions>
+            <Label x:Uid="Label_1" Grid.Row="0" Content="File Extensions" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="12"/>
+            <ListBox x:Uid="listExtensions" Grid.Row="1"  Name="listExtensions" ItemsSource="{Binding Path=Extensions}"  FontSize="12" SelectionChanged="listExtensions_SelectionChanged">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:Uid="DataTemplate_1">
+                        <TextBlock x:Uid="TextBlock_1" Text="{Binding Path=Name}" FontWeight="{Binding Path=Weight}" FontStyle="{Binding Path=Style}" />
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Grid>
+        <Grid x:Uid="Grid_3" Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition x:Uid="RowDefinition_3" Height="30"/>
+                <RowDefinition x:Uid="RowDefinition_4" Height="30"/>
+                <RowDefinition x:Uid="RowDefinition_5" Height="30"/>
+                <RowDefinition x:Uid="RowDefinition_6"/>
+                <RowDefinition x:Uid="RowDefinition_7" Height="30"/>
+            </Grid.RowDefinitions>
+            <Grid x:Uid="Grid_4" Grid.Row="0">
+                <Label x:Uid="Label_2" Content="{Binding Path=PropertyHandlerNow}" Margin="0,0,10,0" FontSize="12"  VerticalAlignment="Bottom"  DataContext="{Binding SelectedExtension}" />
+                <Label x:Uid="Label_3" Content="{Binding Path=Restrictions}" Margin="0,0,10,0" FontSize="12"  VerticalAlignment="Bottom" HorizontalAlignment="Right" Style="{StaticResource ColorByRestriction}" />
+            </Grid>
+            <StackPanel x:Uid="StackPanel_1" Grid.Row="4" Orientation="Horizontal" DataContext="{Binding SelectedExtension}" FlowDirection="RightToLeft">
+                <Button x:Uid="addHandler" Content="Add Handler" Height="23" Name="addHandler" Width="75" Margin="20,0,0,0" FontSize="12" Click="addHandler_Click" IsEnabled="{Binding Path=CanAddPropertyHandlerEtc}" />
+                <Button x:Uid="removeHandler" Content="Remove Handler" Height="23" Name="removeHandler" Width="100" Margin="10,0,0,0" FontSize="12" Click="removeHandler_Click" IsEnabled="{Binding Path=CanRemovePropertyHandlerEtc}" />
+            </StackPanel>
+            <StackPanel x:Uid="StackPanel_2" Grid.Row="1" Orientation="Horizontal">
+                <Label x:Uid="Label_4" Content="Property profile:" Margin="0,0,10,0" FontSize="12"  VerticalAlignment="Bottom" />
+                <ComboBox  x:Uid="comboProfile" Grid.Row="2" Height="23" Name="comboProfile" Width="120" FontSize="12" ItemsSource="{Binding Path=Profiles}" SelectionChanged="comboProfile_SelectionChanged">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:Uid="DataTemplate_2">
+                            <TextBlock x:Uid="TextBlock_2" Text="{Binding Path=Name}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </StackPanel>            
+            <Grid x:Uid="Grid_5" Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition x:Uid="ColumnDefinition_3" Width="1*"/>
+                    <ColumnDefinition x:Uid="ColumnDefinition_4" Width="1*"/>
+                    <ColumnDefinition x:Uid="ColumnDefinition_5" Width="1*"/>
+                </Grid.ColumnDefinitions>
+                <Label x:Uid="Label_5" Grid.Column="0" Content="All properties" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="12"/>
+                <Label x:Uid="Label_6" Grid.Column="1" Content="Full details" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="12"/>
+                <Label x:Uid="Label_7" Grid.Column="2" Content="Preview Details" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="12"/>
+            </Grid>
+            <Grid x:Uid="Grid_6" Grid.Row="3">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition x:Uid="ColumnDefinition_6" Width="1*"/>
+                    <ColumnDefinition x:Uid="ColumnDefinition_7" Width="1*"/>
+                    <ColumnDefinition x:Uid="ColumnDefinition_8" Width="1*"/>
+                </Grid.ColumnDefinitions>
+                <TreeView x:Uid="treeAllProperties" Grid.Column="0" Name="treeAllProperties"  ItemsSource="{Binding Path=AllProperties}" FontSize="12">
+                    <TreeView.ItemTemplate>
+                        <HierarchicalDataTemplate x:Uid="HierarchicalDataTemplate_1" ItemsSource="{Binding Path=Children}">
+                            <Grid x:Uid="Grid_7">
+                                <TextBlock x:Uid="TextBlock_3" Text="{Binding Path=Name}" />
+                             </Grid>
+                        </HierarchicalDataTemplate>
+                    </TreeView.ItemTemplate>
+                </TreeView>
+                <TreeView x:Uid="treeFullDetails" Grid.Column="1" Name="treeFullDetails" DataContext="{Binding SelectedProfile}" ItemsSource="{Binding Path=FullDetails}" FontSize="12">
+                    <TreeView.ItemTemplate>
+                        <HierarchicalDataTemplate x:Uid="HierarchicalDataTemplate_2" ItemsSource="{Binding Path=Children}">
+                            <Grid x:Uid="Grid_8">
+                                <TextBlock x:Uid="TextBlock_4" Text="{Binding Path=Name}" />
+                            </Grid>
+                        </HierarchicalDataTemplate>
+                    </TreeView.ItemTemplate>
+                    <TreeView.ItemContainerStyle>
+                        <Style x:Uid="Style_2">
+                            <Setter x:Uid="Setter_3" Property="TreeViewItem.IsExpanded" Value="true"/>
+                        </Style>
+                    </TreeView.ItemContainerStyle>
+                </TreeView>
+                <ListBox x:Uid="listPreviewDetails" Grid.Column="2" Name="listPreviewDetails" DataContext="{Binding SelectedProfile}" ItemsSource="{Binding Path=PreviewDetails}" FontSize="12">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:Uid="DataTemplate_3">
+                            <TextBlock x:Uid="TextBlock_5" Text="{Binding Path=.}" />
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>
