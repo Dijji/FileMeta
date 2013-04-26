@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--Copyright (c) 2013, Dijii, and released under the Common Public License.  This, with other relevant licenses, can be found in the root of this distribution.-->
+
+<!-- WiX is wonderful!  And a prerequisite for this project.  Get it from http://wixtoolset.org/
+Also thanks to Alek Davis for the 32/64-bit strategy: http://alekdavis.blogspot.co.uk/2011/05/build-32-and-64-bit-installers-using.html
+-->
+
+<?define ProductName = "File Metadata" ?>
+<?define ProductVersion = "1.0" ?>
+
+<?if $(var.Platform) = x64 ?>
+<?define ProductDisplayName = "$(var.ProductName) 64-bit" ?>
+<?define ProductId = "22280171-8EBB-4A1B-8DBC-3AC2CF6B03BC" ?>
+<?define ProductUpgradeCode = "F25135B7-19BB-42F8-9B31-71E487E393AA" ?>
+<?define Win64 = "yes" ?>
+<?define PlatformProgramFilesFolder = "ProgramFiles64Folder" ?>
+<?define PlatformSystemFilesFolder = "SystemFiles64Folder" ?>
+<?define PlatformPropertyCLSID = "{D06391EE-2FEB-419B-9667-AD160D0849F3}" ?>
+<?define PlatformContextMenuCLSID = "{28D14D00-2D80-4956-9657-9D50C8BB47A5}" ?>
+<?define CRuntime = "Microsoft_VC100_CRT_x64.msm" ?>
+<?else ?>
+<?define ProductDisplayName = "$(var.ProductName)" ?>
+<?define ProductId = "513782B2-9AA2-4BE3-93C2-13664F23B965" ?>
+<?define ProductUpgradeCode = "B3F90F1E-2972-4D39-A066-E052EE5DE515" ?>
+<?define Win64 = "no" ?>
+<?define PlatformProgramFilesFolder = "ProgramFilesFolder" ?>
+<?define PlatformSystemFilesFolder = "SystemFilesFolder" ?>
+<?define PlatformPropertyCLSID = "{60211757-EF87-465E-B6C1-B37CF98295F9}" ?>
+<?define PlatformContextMenuCLSID = "{DA38301B-BE91-4397-B2C8-E27A0BD80CC5}" ?>
+<?define CRuntime = "Microsoft_VC100_CRT_x86.msm" ?>
+<?endif ?>
+
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+	<Product Id="$(var.ProductId)" Name="$(var.ProductDisplayName) (v$(var.ProductVersion))"
+           Language="1033" Version="1.0.0.0" Manufacturer="Dijji" UpgradeCode="$(var.ProductUpgradeCode)">
+		<Package InstallerVersion="400" Compressed="yes" InstallScope="perMachine" />
+    <Condition Message="[ProductName] is for Windows Vista, Windows Server 2008, or higher.">
+      <![CDATA[Installed OR (VersionNT >= 600)]]>
+    </Condition>  
+    <Condition Message="You need to be an administrator to install [ProductName]">
+      Privileged
+    </Condition>
+    <PropertyRef Id="NETFRAMEWORK35"/>
+    <Condition Message='[ProductName] requires .NET Framework 3.5 or later to be installed.'>
+      <![CDATA[Installed OR NETFRAMEWORK35]]>
+    </Condition>
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+		<MediaTemplate EmbedCab="yes" />
+    <UIRef Id="WixUI_FeatureTree"/>
+
+    <Feature Id="PF_PropertyHandler" Title="Property Handler" Level="1" Absent="disallow">
+      <ComponentRef Id="COMP_PropertyHandler" />
+      <MergeRef Id="CRT" />
+      <Feature Id="PF_FileAssociationManager" Title="File Association Manager" Level="1">
+        <ComponentGroupRef Id="COMP_AssociationManager" />
+      </Feature>
+      <Feature Id="PF_ContextMenuHandler" Title="Context Menu Handler" Level="1">
+        <ComponentRef Id="COMP_ContextMenuHandler" />
+      </Feature>
+    </Feature>
+
+    <Icon Id="AssociationManagerIcon" SourceFile="tag.ico"/>
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="$(var.PlatformProgramFilesFolder)">
+        <Directory Id="INSTALLFOLDER" Name="$(var.ProductName)">
+          <Directory Id="enUSResources" Name="en-US"/>
+        </Directory>
+      </Directory>
+      <Directory Id="$(var.PlatformSystemFilesFolder)"/>
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="DIR_Shortcuts" Name="$(var.ProductName)"/>
+      </Directory>
+      <!--Tweak the path to the C++ runtime as required in your dev environment. Deploys only release version of runtime, of course-->
+      <Merge Id="CRT" Language="0" SourceFile="C:\Program Files (x86)\Common Files\Merge Modules\$(var.CRuntime)" DiskId="1" />
+    </Directory>
+
+    <!--I tried Directory="$(var.PlatformSystemFilesFolder)" but the installer typically decided it was 'full' and bounced it to a random spot, so this is better-->
+    <Component Id="COMP_PropertyHandler" Win64="$(var.Win64)" Directory="INSTALLFOLDER" Guid="57E7A534-8A34-4271-B5D0-B1387A4906A0">
+      <File Id="FILE_PropertyHandler" KeyPath="yes" Source="$(var.FileMetaPropertyHandler.TargetPath)">
+        <Class Id="$(var.PlatformPropertyCLSID)" Context="InprocServer32" Description="File Meta Property Handler" ThreadingModel="both" />
+      </File>
+      <RegistryValue Root="HKCR" Key="CLSID\$(var.PlatformPropertyCLSID)" Name="ManualSafeSave" Value="1" Type="integer" Action="write" />
+      <RegistryValue Root="HKCR" Key="CLSID\$(var.PlatformPropertyCLSID)" Name="EnableShareDenyWrite" Value="1" Type="integer" Action="write" />
+      <RegistryValue Root="HKCR" Key="CLSID\$(var.PlatformPropertyCLSID)" Name="EnableShareDenyNone" Value="1" Type="integer" Action="write" />
+    </Component>
+    
+    <Component Id="COMP_ContextMenuHandler" Win64="$(var.Win64)" Directory="INSTALLFOLDER" Guid="6D5DD627-726C-4892-9667-30A9C4F544FF">
+      <File Id="FILE_ContextMenuHandler" KeyPath="yes" Source="$(var.FileMetaContextMenuHandler.TargetPath)">
+        <Class Id="$(var.PlatformContextMenuCLSID)" Context="InprocServer32" Description="File Meta Stream Context Menu Handler" ThreadingModel="both" />
+      </File>
+    </Component>
+
+    <ComponentGroup Id="COMP_AssociationManager">
+      <Component Id="COMP_FileAssociationManager"  Directory="INSTALLFOLDER" Guid="8F8E44D9-D54E-44C7-9D89-B4222A8EFCC0">
+        <File KeyPath="yes" Source="$(var.FileMetaAssociationManager.TargetPath)" />
+      </Component>
+      <Component Id="COMP_enUSResources"  Directory="enUSResources" Guid="DFF3A865-AEC7-4042-9E19-03214C9B3753">
+        <File KeyPath="yes" Source="$(var.FileMetaAssociationManager.TargetDir)\en-US\FileMetaAssociationManager.resources.dll" />
+      </Component>
+      <Component Id="COMP_FileAssociationManagerShortcut" Directory="ProgramMenuFolder" Guid="FE2E1952-D49F-4850-89ED-EAF89D74E349">
+        <Shortcut Id="SHORT_FileAssociationManager" Directory="DIR_Shortcuts"
+                  Name="File Association Manager" Icon="AssociationManagerIcon"
+                  Target="[INSTALLFOLDER]FileMetaAssociationManager.exe"/>
+        <RemoveFolder Id="RemoveDIR_Shortcuts" Directory="DIR_Shortcuts" On="uninstall"/>
+        <RegistryValue Root="HKCU" Key="Software\Microsoft\FileMetadata" Name="installed" Type="integer" Value="1" KeyPath="yes"/>
+      </Component>
+    </ComponentGroup>
+  </Product>
+</Wix>
