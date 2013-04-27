@@ -1,6 +1,6 @@
 // Some parts copied from Microsoft's EnumAll sample: http://msdn.microsoft.com/en-us/library/aa379016(v=vs.85).aspx (no visible license terms_
 // Some parts copied from CppShellExtContextMenuHandler Copyright (c) Microsoft Corporation and subject to the Microsoft Public License: http://www.microsoft.com/opensource/licenses.mspx#Ms-PL.
-// All other code Copyright (c) 2013, Dijii, and released under the Common Public License.  This, with other relevant licenses, can be found in the root of this distribution.
+// All other code Copyright (c) 2013, Dijii, and released under Ms-PL.  This, with other relevant licenses, can be found in the root of this distribution.
 
 #include <windows.h>
 #include <WinUser.h>
