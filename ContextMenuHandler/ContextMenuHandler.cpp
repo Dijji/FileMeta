@@ -748,8 +748,6 @@ void CContextMenuHandler::ImportPropertySetData (xml_document<WCHAR> *doc, xml_n
 				hr = PropVariantChangeType(&propvarValue, propvarString, 0, vt);
 				if (SUCCEEDED(hr))
 				{
-					if (vt&VT_VECTOR)
-						hr = S_OK;
 					hr = pStore->SetValue(key, propvarValue);
 					if (FAILED(hr))
 						throw new CPHException(hr, IDS_E_IPS_SETVALUE_2, hr, name != NULL ? name->value(): id->value());
