@@ -1,4 +1,4 @@
-// Copyright (c) 2013, Dijii, and released under the Common Public License.  This, with other relevant licenses, can be found in the root of this distribution.
+// Copyright (c) 2013, Dijii, and released under Ms-PL.  This, with other relevant licenses, can be found in the root of this distribution.
 
 #include <windows.h>
 #include <shlwapi.h>
