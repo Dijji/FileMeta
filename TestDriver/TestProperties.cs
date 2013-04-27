@@ -78,8 +78,9 @@ namespace TestDriver
             //export the metadata
             CMINVOKECOMMANDINFOEX cmd = new CMINVOKECOMMANDINFOEX();
             cmd.lpVerb = new IntPtr((int)ContextMenuVerbs.Export);
-            contextHandler.InvokeCommand(cmd);
-
+            var cw = new CommandWrapper(cmd);
+            contextHandler.InvokeCommand(cw.Ptr);
+            
             Marshal.ReleaseComObject(contextHandler);  // preempt GC for CCW
 
             // Create new file and import values to it
@@ -97,19 +98,25 @@ namespace TestDriver
 
             cmd = new CMINVOKECOMMANDINFOEX();
             cmd.lpVerb = new IntPtr((int)ContextMenuVerbs.Import);
-            contextHandler.InvokeCommand(cmd);
+            cw = new CommandWrapper(cmd);
+            contextHandler.InvokeCommand(cw.Ptr);
 
             Marshal.ReleaseComObject(contextHandler);  // preempt GC for CCW
 
-            // Go around one last time, reading and checking the imported values, using Code Pack this time
-            errors = GetAndCheckValues(fileName2, state, true);
+            // Go around one last time, reading and checking the imported values
+            // We don't use the Code Pack because of it's boolean value bug
+            errors = GetAndCheckValues(fileName2, state, false);
 
             state.RecordEntry(String.Format("{0} properties read back, {1} mismatches", savedProps.Count, errors));
 
             // Clean up files - checks if they have been released, too
-            File.Delete(fileName);
-            File.Delete(fileName2);
-            File.Delete(MetadataFileName(fileName2));  
+            // Leave files around for analysis if there have been problems
+            if (errors == 0)
+            {
+                File.Delete(fileName);
+                File.Delete(fileName2);
+                File.Delete(MetadataFileName(fileName2));
+            }
 
             return errors == 0;
         }

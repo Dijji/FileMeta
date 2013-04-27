@@ -41,7 +41,8 @@ namespace TestDriver
             //export the metadata
             CMINVOKECOMMANDINFOEX cmd = new CMINVOKECOMMANDINFOEX();
             cmd.lpVerb = new IntPtr((int)ContextMenuVerbs.Export);
-            handler.InvokeCommand(cmd);
+            var cw = new CommandWrapper(cmd);
+            handler.InvokeCommand(cw.Ptr);
 
             // Create a 2nd temp file for import
             string fileName2 = CreateFreshFile(2);
@@ -59,7 +60,8 @@ namespace TestDriver
 
             cmd = new CMINVOKECOMMANDINFOEX();
             cmd.lpVerb = new IntPtr((int)ContextMenuVerbs.Import);
-            handler.InvokeCommand(cmd);
+            cw = new CommandWrapper(cmd);
+            handler.InvokeCommand(cw.Ptr);
 
             Marshal.ReleaseComObject(handler);  // preempt GC for CCW
 
