@@ -107,7 +107,7 @@ namespace TestDriver
                    uint uFlags);
 
         [PreserveSig()]
-        void InvokeCommand(CMINVOKECOMMANDINFOEX pici);
+        void InvokeCommand(IntPtr pici);
 
         [PreserveSig()]
         void GetCommandString(int idcmd,
@@ -122,6 +122,25 @@ namespace TestDriver
         Export = 0,
         Import = 1,
         Delete = 2,
+    }
+
+    // Do the wrapping of CMINVOKECOMMANDINFOEX by hand, because default marshalling works for
+    // 64-bit, but not for 32-bit
+    class CommandWrapper : IDisposable
+    {
+        private IntPtr ptr;
+        public IntPtr Ptr { get { return ptr; } }
+
+        public CommandWrapper(CMINVOKECOMMANDINFOEX cmd)
+        {
+            ptr = Marshal.AllocHGlobal(Marshal.SizeOf(cmd));
+            Marshal.StructureToPtr(cmd, ptr, false);
+        }
+
+        public void Dispose()
+        {
+            Marshal.FreeHGlobal(ptr);
+        }
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -157,23 +176,13 @@ namespace TestDriver
     [StructLayout(LayoutKind.Sequential)]
     public struct POINT
     {
-        public int X;
-        public int Y;
+        public long X;
+        public long Y;
 
         public POINT(int x, int y)
         {
             this.X = x;
             this.Y = y;
-        }
-
-        public static implicit operator System.Drawing.Point(POINT p)
-        {
-            return new System.Drawing.Point(p.X, p.Y);
-        }
-
-        public static implicit operator POINT(System.Drawing.Point p)
-        {
-            return new POINT(p.X, p.Y);
         }
     }
 }
