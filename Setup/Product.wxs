@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--Copyright (c) 2013, Dijii, and released under Ms-PL.  This, with other relevant licenses, can be found in the root of this distribution.-->
+<!--Copyright (c) 2013, Dijji, and released under Ms-PL.  This, with other relevant licenses, can be found in the root of this distribution.-->
 
 <!-- WiX is wonderful!  And a prerequisite for this project.  Get it from http://wixtoolset.org/
 Also thanks to Alek Davis for the 32/64-bit strategy: http://alekdavis.blogspot.co.uk/2011/05/build-32-and-64-bit-installers-using.html
