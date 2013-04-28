@@ -41,7 +41,9 @@ namespace FileMetadataAssociationManager
         {
             ListBox lb = (ListBox)sender;
             state.SelectedExtension = (Extension)lb.SelectedItem;
-            state.SelectedExtension.SelectCurrentProfileIfKnown();
+
+            if (state.SelectedExtension != null)
+                state.SelectedExtension.SelectCurrentProfileIfKnown();
         }
 
         private void comboProfile_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -75,6 +77,14 @@ namespace FileMetadataAssociationManager
         {
             if (state.SelectedExtension != null)
                 state.SelectedExtension.RemoveHandlerFromExtension();
+        }
+
+        private void refresh_Click(object sender, RoutedEventArgs e)
+        {
+            Extension currentSelection = (Extension) listExtensions.SelectedItem;
+            state.SortExtensions();
+            listExtensions.SelectedItem = currentSelection;
+            listExtensions.ScrollIntoView(currentSelection);
         }
     }
 }
