@@ -33,10 +33,10 @@ namespace FileMetadataAssociationManager
 
         public string Name { get; set; }
         public State State { get; set; }
-        public FontStyle Style { get { return ForeignHandler ? FontStyles.Italic : FontStyles.Normal; } }
         public FontWeight Weight { get { return OurHandler ? FontWeights.ExtraBold : (ForeignHandler ? FontWeights.ExtraLight : FontWeights.Normal); } }
         public string PropertyHandlerGuid { get { return propertyHandlerGuid; } }
         public string PropertyHandlerTitle { get { return propertyHandlerTitle; } }
+        public string NamePlusHandler { get { return Name + " \t" + PropertyHandlerTitle; } }
         public bool CanAddPropertyHandlerEtc { get { return IsOurPropertyHandlerRegistered && propertyHandlerGuid == null && State.SelectedProfile != null; } }
         public bool CanRemovePropertyHandlerEtc { get { return OurHandler; } }
         public string PropertyHandlerNow 
@@ -48,8 +48,8 @@ namespace FileMetadataAssociationManager
             } 
         }
 
-        private bool ForeignHandler { get { return propertyHandlerGuid != null && propertyHandlerGuid != OurPropertyHandlerGuid; } }
-        private bool OurHandler { get { return propertyHandlerGuid != null && propertyHandlerGuid == OurPropertyHandlerGuid; } }
+        public bool ForeignHandler { get { return propertyHandlerGuid != null && propertyHandlerGuid != OurPropertyHandlerGuid; } }
+        public bool OurHandler { get { return propertyHandlerGuid != null && propertyHandlerGuid == OurPropertyHandlerGuid; } }
 
         public static bool IsElevated
         {
@@ -99,6 +99,7 @@ namespace FileMetadataAssociationManager
             propertyHandlerTitle = title;
 
             OnPropertyChanged("PropertyHandlerTitle");
+            OnPropertyChanged("NamePlusHandler");
             OnPropertyChanged("PropertyHandlerNow");
             OnPropertyChanged("Style");
             OnPropertyChanged("Weight");
