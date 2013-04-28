@@ -66,7 +66,9 @@ Also thanks to Alek Davis for the 32/64-bit strategy: http://alekdavis.blogspot.
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="$(var.PlatformProgramFilesFolder)">
         <Directory Id="INSTALLFOLDER" Name="$(var.ProductName)">
+          <!-- for future locaization 
           <Directory Id="enUSResources" Name="en-US"/>
+          -->
         </Directory>
       </Directory>
       <Directory Id="$(var.PlatformSystemFilesFolder)"/>
@@ -97,9 +99,11 @@ Also thanks to Alek Davis for the 32/64-bit strategy: http://alekdavis.blogspot.
       <Component Id="COMP_FileAssociationManager"  Directory="INSTALLFOLDER" Guid="8F8E44D9-D54E-44C7-9D89-B4222A8EFCC0">
         <File KeyPath="yes" Source="$(var.FileMetaAssociationManager.TargetPath)" />
       </Component>
+      <!-- for future locaization 
       <Component Id="COMP_enUSResources"  Directory="enUSResources" Guid="DFF3A865-AEC7-4042-9E19-03214C9B3753">
-        <File KeyPath="yes" Source="$(var.FileMetaAssociationManager.TargetDir)\en-US\FileMetaAssociationManager.resources.dll" />
+        <File KeyPath="yes" Source="$(var.FileMetaAssociationManager.TargetDir)en-US\FileMetaAssociationManager.resources.dll" />
       </Component>
+          -->
       <Component Id="COMP_FileAssociationManagerShortcut" Directory="ProgramMenuFolder" Guid="FE2E1952-D49F-4850-89ED-EAF89D74E349">
         <Shortcut Id="SHORT_FileAssociationManager" Directory="DIR_Shortcuts"
                   Name="File Association Manager" Icon="AssociationManagerIcon"
