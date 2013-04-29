@@ -102,18 +102,15 @@ namespace FileMetadataAssociationManager
         public void SortExtensions()
         {
             // Sort by file extension, but group by our handler, other handlers, and finally no handler
-            List<Extension> es = extensions.ToList();
-            es.Sort((e, f) =>
+            // This uses a Sort extension to ObservableCollection
+            extensions.Sort((e, f) =>
                 e.OurHandler ?
                     (f.OurHandler ? e.Name.CompareTo(f.Name) : -1) :
                     f.OurHandler ? 1 :
                         e.ForeignHandler ? (f.ForeignHandler ? e.Name.CompareTo(f.Name) : -1) :
                         f.ForeignHandler ? 1 :
                             e.Name.CompareTo(f.Name));
-            extensions.Clear();
-            foreach (var e in es)
-                extensions.Add(e);
-            Extensions.NotifyReset();
+            //Extensions.NotifyReset();
         }
 
         private void PopulateSystemProperties()
