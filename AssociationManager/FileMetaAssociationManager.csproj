@@ -97,6 +97,7 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Code Pack\CoreErrorHelper.cs" />
+    <Compile Include="Extensions.cs" />
     <Compile Include="ObservableCollectionWithReset.cs" />
     <Compile Include="Profile.cs" />
     <Compile Include="Resources\LocalizedMessages.Designer.cs">
