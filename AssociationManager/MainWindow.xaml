@@ -29,25 +29,31 @@
                 <RowDefinition x:Uid="RowDefinition_2"/>
             </Grid.RowDefinitions>
             <Grid x:Uid="Grid_9" Grid.Row="0" >
-                <Label x:Uid="Label_1" Content="File Extensions by name and handler"  FontSize="12" VerticalAlignment="Bottom" HorizontalAlignment="Left"/>
+                <Label x:Uid="Label_1" Content="File Extensions:"  FontSize="12" VerticalAlignment="Bottom" HorizontalAlignment="Left"/>
                 <Button x:Uid="refresh" Name="refresh" Width="20" Height="20" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,20,0" Click="refresh_Click">
                     <Image x:Uid="Image_1" Source="/FileMetaAssociationManager;component/Resources/refresh.ico" />
                 </Button>
             </Grid>
-            <ListBox x:Uid="listExtensions" Grid.Row="1" Grid.IsSharedSizeScope="True"   Name="listExtensions" ItemsSource="{Binding Path=Extensions}"  FontSize="12" SelectionChanged="listExtensions_SelectionChanged">
-                <ListBox.ItemTemplate>
-                    <DataTemplate x:Uid="DataTemplate_1">
-                        <Grid Margin="1">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition  SharedSizeGroup="col1"/>
-                                <ColumnDefinition  SharedSizeGroup="col2" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" x:Uid="TextBlock_1" Text="{Binding Path=Name}" FontWeight="{Binding Path=Weight}" />
-                            <TextBlock Grid.Column="1" Text="{Binding Path=PropertyHandlerTitle}" Margin="5,0,0,0" FontWeight="{Binding Path=Weight}" />
-                        </Grid>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
+            <ListView Grid.Row="1"  Name="listExtensions" ItemsSource="{Binding Path=Extensions}"  FontSize="12" SelectionChanged="listExtensions_SelectionChanged" Foreground="Black">
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn Width="50" Header="Name" >
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Path=Name}" FontWeight="{Binding Path=Weight}" />
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                        <GridViewColumn Header="Handler"  >
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Path=PropertyHandlerTitle}" FontWeight="{Binding Path=Weight}" />
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                    </GridView>
+                </ListView.View>
+            </ListView>
         </Grid>
         <Grid x:Uid="Grid_3" Grid.Column="1">
             <Grid.RowDefinitions>

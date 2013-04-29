@@ -39,8 +39,8 @@ namespace FileMetadataAssociationManager
 
         private void listExtensions_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            ListBox lb = (ListBox)sender;
-            state.SelectedExtension = (Extension)lb.SelectedItem;
+            ListView lv = (ListView)sender;
+            state.SelectedExtension = (Extension)lv.SelectedItem;
 
             if (state.SelectedExtension != null)
                 state.SelectedExtension.SelectCurrentProfileIfKnown();
