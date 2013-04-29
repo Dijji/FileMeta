@@ -119,6 +119,7 @@
   <ItemGroup>
     <ClInclude Include="dll.h" />
     <ClInclude Include="RegisterExtension.h" />
+    <ClInclude Include="resource1.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Dll.cpp" />
@@ -127,6 +128,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="FileMetaPropertyHandler.def" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="FileMetaPropertyHandler.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
