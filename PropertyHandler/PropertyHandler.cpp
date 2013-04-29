@@ -156,15 +156,19 @@ HRESULT RegisterPropertyHandler()
     HRESULT hr = re.RegisterInProcServer(PropertyHandlerDescription, L"Both");
     if (SUCCEEDED(hr))
     {
-        hr = re.RegisterInProcServerAttribute(L"ManualSafeSave", TRUE);
+        hr = re.RegisterInProcServerAttribute(L"DisableProcessIsolation", TRUE);
         if (SUCCEEDED(hr))
-        {
-            hr = re.RegisterInProcServerAttribute(L"EnableShareDenyWrite", TRUE);
-            if (SUCCEEDED(hr))
-            {
-                hr = re.RegisterInProcServerAttribute(L"EnableShareDenyNone", TRUE);
-            }
-        }
+		{
+			hr = re.RegisterInProcServerAttribute(L"ManualSafeSave", TRUE);
+			if (SUCCEEDED(hr))
+			{
+				hr = re.RegisterInProcServerAttribute(L"EnableShareDenyWrite", TRUE);
+				if (SUCCEEDED(hr))
+				{
+					hr = re.RegisterInProcServerAttribute(L"EnableShareDenyNone", TRUE);
+				}
+			}
+		}
     }
 
     return hr;
