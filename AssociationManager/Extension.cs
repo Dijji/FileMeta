@@ -129,7 +129,7 @@ namespace FileMetadataAssociationManager
             string progid = (string)ext.GetValue(null);
 
             RegistryKey target;
-            if (progid.Length > 0)
+            if (progid != null && progid.Length > 0)
                 target = Registry.ClassesRoot.OpenSubKey(progid, true);
             else
                 target = Registry.ClassesRoot.OpenSubKey(Name, true);
@@ -178,7 +178,7 @@ namespace FileMetadataAssociationManager
             string progid = (string)ext.GetValue(null);
 
             RegistryKey target;
-            if (progid.Length > 0)
+            if (progid != null && progid.Length > 0)
                 target = Registry.ClassesRoot.OpenSubKey(progid, true);
             else
                 target = Registry.ClassesRoot.OpenSubKey(Name, true);
@@ -220,7 +220,7 @@ namespace FileMetadataAssociationManager
             {
                 string progid = (string)ext.GetValue(null);
 
-                if (progid.Length > 0)
+                if (progid != null && progid.Length > 0)
                     target = Registry.ClassesRoot.OpenSubKey(progid, true);
                 else
                     target = Registry.ClassesRoot.OpenSubKey(Name, true);
