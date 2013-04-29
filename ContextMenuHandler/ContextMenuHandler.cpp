@@ -143,7 +143,7 @@ void OutputDebugStringFormat( WCHAR* lpszFormat, ... )
    ::OutputDebugStringW( lpszBuffer );
 }
 #else
-#define TRACEF	((void)0)
+#define TRACEF	__noop
 #endif
 #pragma endregion
 
@@ -464,7 +464,6 @@ void CContextMenuHandler::ExportPropertySetData (xml_document<WCHAR> *doc, xml_n
     STATPROPSTG statpropstg;
     PROPVARIANT propvar;
     PROPSPEC propspec;
-    PROPID propid;
 
 	PropVariantInit( &propvar );
 	statpropstg.lpwstrName = NULL;
@@ -579,7 +578,7 @@ void CContextMenuHandler::ExportPropertySetData (xml_document<WCHAR> *doc, xml_n
 
 					// Some Unicode chars in built-in Windows strings give std::wofstream hiccups.  Fix them here
 					// TODO fix the real problem
-					for (int i = 0; i < wcslen(wszDisp); i++)
+					for (unsigned int i = 0; i < wcslen(wszDisp); i++)
 					{
 						if (*(wszDisp + i) == L'\u2013') *(wszDisp + i) = L'-';  // en-dash
 					}
@@ -706,7 +705,7 @@ void CContextMenuHandler::ImportPropertySetData (xml_document<WCHAR> *doc, xml_n
 			throw new CPHException(E_UNEXPECTED, IDS_E_NOVALUE_1, name != NULL ? name->value(): id->value());
 
 		WCHAR* stop;
-		VARTYPE vt = wcstol(idType->value(), &stop, 10);
+		VARTYPE vt = (VARTYPE) wcstol(idType->value(), &stop, 10);
 		PROPERTYKEY key;
 		key.fmtid = fmtid;
 		key.pid =  wcstol(id->value(), &stop, 10);
@@ -727,7 +726,7 @@ void CContextMenuHandler::ImportPropertySetData (xml_document<WCHAR> *doc, xml_n
 				
 				PCWSTR * ps = NULL;
 				ps = new PCWSTR[ss.size()];
-				for (int i = 0; i < ss.size(); i++)
+				for (unsigned int i = 0; i < ss.size(); i++)
 				{
 					// Non-first elements begin with a blank after each ';' put there by formatting for display on export
 					// If present, remove
