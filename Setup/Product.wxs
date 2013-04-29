@@ -84,6 +84,7 @@ Also thanks to Alek Davis for the 32/64-bit strategy: http://alekdavis.blogspot.
       <File Id="FILE_PropertyHandler" KeyPath="yes" Source="$(var.FileMetaPropertyHandler.TargetPath)">
         <Class Id="$(var.PlatformPropertyCLSID)" Context="InprocServer32" Description="File Meta Property Handler" ThreadingModel="both" />
       </File>
+      <RegistryValue Root="HKCR" Key="CLSID\$(var.PlatformPropertyCLSID)" Name="DisableProcessIsolation" Value="1" Type="integer" Action="write" />
       <RegistryValue Root="HKCR" Key="CLSID\$(var.PlatformPropertyCLSID)" Name="ManualSafeSave" Value="1" Type="integer" Action="write" />
       <RegistryValue Root="HKCR" Key="CLSID\$(var.PlatformPropertyCLSID)" Name="EnableShareDenyWrite" Value="1" Type="integer" Action="write" />
       <RegistryValue Root="HKCR" Key="CLSID\$(var.PlatformPropertyCLSID)" Name="EnableShareDenyNone" Value="1" Type="integer" Action="write" />
