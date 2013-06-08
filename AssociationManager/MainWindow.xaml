@@ -7,7 +7,7 @@
         xmlns:dat="clr-namespace:System.Windows.Data;assembly=PresentationFramework"
         Title="File Meta Association Manager" Height="800" Width="1000" FontSize="12" Loaded="Window_Loaded" Icon="/FileMetaAssociationManager;component/Resources/tag.ico">
     <Window.Resources>
-        <Style x:Uid="Style_1" TargetType="Label" x:Key="ColorByRestriction">
+        <Style x:Uid="Style_1" TargetType="TextBlock" x:Key="ColorByRestriction">
             <Style.Triggers>
                 <DataTrigger x:Uid="DataTrigger_1" Binding="{Binding Path=RestrictionLevel}" Value="1">
                     <Setter x:Uid="Setter_1" Property="Background" Value="#EEAD0E"/>
@@ -20,34 +20,63 @@
     </Window.Resources>
     <Grid x:Uid="Grid_1">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition x:Uid="ColumnDefinition_1" Width="2*"/>
+            <ColumnDefinition x:Uid="ColumnDefinition_1" Width="200"/>
+            <ColumnDefinition x:Uid="ColumnDefinition_9" Width="3*"/>
             <ColumnDefinition x:Uid="ColumnDefinition_2" Width="5*"/>
         </Grid.ColumnDefinitions>
-        <Grid x:Uid="Grid_2" Grid.Column="0">
+        <StackPanel x:Uid="StackPanel_1" Grid.Column="0" Margin="0,30,0,0">
+            <TextBlock x:Uid="TextBlock_6" Text="To add metadata for extension:" FontSize="12" FontWeight="Bold"  Margin="5,0,0,0"/>
+            <StackPanel x:Uid="StackPanel_2" Orientation="Horizontal" Margin="0,15,0,0">
+                <TextBlock x:Uid="TextBlock_7" Text="1." FontSize="12" Margin="5,0,0,0"/>
+                <TextBlock x:Uid="TextBlock_8" Text="Select a File Extension with no Handler" FontSize="12" Width="175" Margin="5,0,0,0" TextWrapping="Wrap"/>
+            </StackPanel>
+            <StackPanel x:Uid="StackPanel_3" Orientation="Horizontal" Margin="0,10,0,5">
+                <TextBlock x:Uid="TextBlock_9" Text="2." FontSize="12" Margin="5,0,0,0"/>
+                <TextBlock x:Uid="TextBlock_10" Text="Choose a profile of editable properties:" FontSize="12" Width="175" Margin="5,0,0,0" TextWrapping="Wrap"/>
+            </StackPanel>
+            <ComboBox x:Uid="comboProfile" Grid.Row="2" Height="23" Name="comboProfile" Width="120" FontSize="12" HorizontalAlignment="Center" ItemsSource="{Binding Path=Profiles}" SelectionChanged="comboProfile_SelectionChanged" >
+                <ComboBox.ItemTemplate>
+                    <DataTemplate x:Uid="DataTemplate_2">
+                        <TextBlock x:Uid="TextBlock_2" Text="{Binding Path=Name}" />
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+            <TextBlock x:Uid="TextBlock_11" Text="3. " FontSize="12" Margin="5,5,0,5"/>
+            <Button x:Uid="addHandler" Content="Add File Meta Handler" Height="23" Name="addHandler" Margin="10,0,15,0" FontSize="12" Click="addHandler_Click" DataContext="{Binding SelectedExtension}" IsEnabled="{Binding Path=CanAddPropertyHandlerEtc}" />
+            <TextBlock x:Uid="TextBlock_12" Text="To remove handler for extension:" FontSize="12" FontWeight="Bold" Margin="5,60,0,0"/>
+            <StackPanel x:Uid="StackPanel_4" Orientation="Horizontal" Margin="0,15,0,0">
+                <TextBlock x:Uid="TextBlock_13" Text="1." FontSize="12" Margin="5,0,0,0"/>
+                <TextBlock x:Uid="TextBlock_14" Text="Select a File Extension with the File Meta Property Handler" FontSize="12" Width="175" Margin="5,0,0,0" TextWrapping="Wrap"/>
+            </StackPanel>
+            <TextBlock x:Uid="TextBlock_15" Text="2." FontSize="12" Margin="5,10,0,5"/>
+            <Button x:Uid="removeHandler" Content="Remove File Meta Handler" Height="23" Name="removeHandler" Margin="10,0,15,0" FontSize="12" Click="removeHandler_Click" DataContext="{Binding SelectedExtension}" IsEnabled="{Binding Path=CanRemovePropertyHandlerEtc}" />
+            <TextBlock x:Uid="Label_3" Text="{Binding Path=Restrictions}" TextWrapping="Wrap" Margin="5,90,0,0" FontSize="12" Style="{StaticResource ColorByRestriction}" />
+        </StackPanel>
+        <Grid x:Uid="Grid_2" Grid.Column="1">
             <Grid.RowDefinitions>
-                <RowDefinition x:Uid="RowDefinition_1" Height="30"/>
+                <RowDefinition x:Uid="RowDefinition_1" Height="25"/>
                 <RowDefinition x:Uid="RowDefinition_2"/>
             </Grid.RowDefinitions>
             <Grid x:Uid="Grid_9" Grid.Row="0" >
-                <Label x:Uid="Label_1" Content="File Extensions:"  FontSize="12" VerticalAlignment="Bottom" HorizontalAlignment="Left"/>
-                <Button x:Uid="refresh" Name="refresh" Width="20" Height="20" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,20,0" Click="refresh_Click">
+                <Label x:Uid="Label_1" Content="File Extensions:"  FontSize="12" VerticalAlignment="Bottom" HorizontalAlignment="Center"/>
+                <!--<Button x:Uid="refresh" Name="refresh" Width="20" Height="20" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,20,0" Click="refresh_Click">
                     <Image x:Uid="Image_1" Source="/FileMetaAssociationManager;component/Resources/refresh.ico" />
-                </Button>
+                </Button>-->
             </Grid>
-            <ListView Grid.Row="1"  Name="listExtensions" ItemsSource="{Binding Path=Extensions}"  FontSize="12" SelectionChanged="listExtensions_SelectionChanged" Foreground="Black">
+            <ListView x:Uid="listExtensions" Grid.Row="1"  Name="listExtensions" Margin="0,25,0,0" ItemsSource="{Binding Path=Extensions}"  FontSize="12" SelectionChanged="listExtensions_SelectionChanged" Foreground="Black">
                 <ListView.View>
-                    <GridView>
-                        <GridViewColumn Width="50" Header="Name" >
+                    <GridView x:Uid="GridView_1">
+                        <GridViewColumn x:Uid="GridViewColumn_1" Width="50" Header="Name" >
                             <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Path=Name}" FontWeight="{Binding Path=Weight}" />
+                                <DataTemplate x:Uid="DataTemplate_4">
+                                    <TextBlock x:Uid="TextBlock_16" Text="{Binding Path=Name}" FontWeight="{Binding Path=Weight}" />
                                 </DataTemplate>
                             </GridViewColumn.CellTemplate>
                         </GridViewColumn>
-                        <GridViewColumn Header="Handler"  >
+                        <GridViewColumn x:Uid="GridViewColumn_2" Header="Handler"  >
                             <GridViewColumn.CellTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Path=PropertyHandlerTitle}" FontWeight="{Binding Path=Weight}" />
+                                <DataTemplate x:Uid="DataTemplate_5">
+                                    <TextBlock x:Uid="TextBlock_17" Text="{Binding Path=PropertyHandlerTitle}" FontWeight="{Binding Path=Weight}" />
                                 </DataTemplate>
                             </GridViewColumn.CellTemplate>
                         </GridViewColumn>
@@ -55,51 +84,42 @@
                 </ListView.View>
             </ListView>
         </Grid>
-        <Grid x:Uid="Grid_3" Grid.Column="1">
+        <Grid x:Uid="Grid_3" Grid.Column="2">
             <Grid.RowDefinitions>
-                <RowDefinition x:Uid="RowDefinition_3" Height="30"/>
-                <RowDefinition x:Uid="RowDefinition_5" Height="30"/>
+                <RowDefinition x:Uid="RowDefinition_3" Height="25"/>
+                <RowDefinition x:Uid="RowDefinition_5" Height="25"/>
                 <RowDefinition x:Uid="RowDefinition_6"/>
-                <RowDefinition x:Uid="RowDefinition_7" Height="30"/>
             </Grid.RowDefinitions>
             <Grid x:Uid="Grid_4" Grid.Row="0">
-                <StackPanel x:Uid="StackPanel_2" Orientation="Horizontal" HorizontalAlignment="Center">
-                    <Label x:Uid="Label_4" Content="Property profile:" Margin="15,0,10,0" FontSize="12"  VerticalAlignment="Bottom" />
-                    <ComboBox  x:Uid="comboProfile" Grid.Row="2" Height="23" Name="comboProfile" Width="120" FontSize="12" ItemsSource="{Binding Path=Profiles}" SelectionChanged="comboProfile_SelectionChanged">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate x:Uid="DataTemplate_2">
-                                <TextBlock x:Uid="TextBlock_2" Text="{Binding Path=Name}" />
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
-                </StackPanel>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition x:Uid="ColumnDefinition_3" Width="20"/>
+                    <ColumnDefinition x:Uid="ColumnDefinition_4" Width="1*"/>
+                </Grid.ColumnDefinitions> 
+                <Label x:Uid="Label_4" Grid.Column="1" Content="Metadata properties editable in Explorer:" HorizontalAlignment="Center" Margin="0,0,10,0" FontSize="12"  VerticalAlignment="Bottom" />
             </Grid>
             <Grid x:Uid="Grid_5" Grid.Row="1">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition x:Uid="ColumnDefinition_3" Width="1*"/>
-                    <ColumnDefinition x:Uid="ColumnDefinition_4" Width="1*"/>
+                    <ColumnDefinition x:Uid="ColumnDefinition_10" Width="20"/>
+                    <ColumnDefinition x:Uid="ColumnDefinition_11" Width="1*"/>
                     <ColumnDefinition x:Uid="ColumnDefinition_5" Width="1*"/>
                 </Grid.ColumnDefinitions>
-                <Label x:Uid="Label_5" Grid.Column="0" Content="All properties" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="12"/>
-                <Label x:Uid="Label_6" Grid.Column="1" Content="Full details" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="12"/>
-                <Label x:Uid="Label_7" Grid.Column="2" Content="Preview Details" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="12"/>
+                <Label x:Uid="Label_7" Grid.Column="1" Content="Preview Panel" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="12"/>
+                <Label x:Uid="Label_6" Grid.Column="2" Content="Full details" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="12"/>
             </Grid>
             <Grid x:Uid="Grid_6" Grid.Row="2">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition x:Uid="ColumnDefinition_6" Width="1*"/>
+                    <ColumnDefinition x:Uid="ColumnDefinition_6" Width="20"/>
                     <ColumnDefinition x:Uid="ColumnDefinition_7" Width="1*"/>
                     <ColumnDefinition x:Uid="ColumnDefinition_8" Width="1*"/>
                 </Grid.ColumnDefinitions>
-                <TreeView x:Uid="treeAllProperties" Grid.Column="0" Name="treeAllProperties"  ItemsSource="{Binding Path=AllProperties}" FontSize="12">
-                    <TreeView.ItemTemplate>
-                        <HierarchicalDataTemplate x:Uid="HierarchicalDataTemplate_1" ItemsSource="{Binding Path=Children}">
-                            <Grid x:Uid="Grid_7">
-                                <TextBlock x:Uid="TextBlock_3" Text="{Binding Path=Name}" />
-                             </Grid>
-                        </HierarchicalDataTemplate>
-                    </TreeView.ItemTemplate>
-                </TreeView>
-                <TreeView x:Uid="treeFullDetails" Grid.Column="1" Name="treeFullDetails" DataContext="{Binding SelectedProfile}" ItemsSource="{Binding Path=FullDetails}" FontSize="12">
+                <ListBox x:Uid="listPreviewDetails" Grid.Column="1" Name="listPreviewDetails" DataContext="{Binding SelectedProfile}" ItemsSource="{Binding Path=PreviewDetails}" FontSize="12">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:Uid="DataTemplate_3">
+                            <TextBlock x:Uid="TextBlock_5" Text="{Binding Path=.}" />
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                <TreeView x:Uid="treeFullDetails" Grid.Column="2" Name="treeFullDetails" DataContext="{Binding SelectedProfile}" ItemsSource="{Binding Path=FullDetails}" FontSize="12">
                     <TreeView.ItemTemplate>
                         <HierarchicalDataTemplate x:Uid="HierarchicalDataTemplate_2" ItemsSource="{Binding Path=Children}">
                             <Grid x:Uid="Grid_8">
@@ -113,20 +133,6 @@
                         </Style>
                     </TreeView.ItemContainerStyle>
                 </TreeView>
-                <ListBox x:Uid="listPreviewDetails" Grid.Column="2" Name="listPreviewDetails" DataContext="{Binding SelectedProfile}" ItemsSource="{Binding Path=PreviewDetails}" FontSize="12">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate x:Uid="DataTemplate_3">
-                            <TextBlock x:Uid="TextBlock_5" Text="{Binding Path=.}" />
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-            </Grid>
-            <Grid x:Uid="Grid_10" Grid.Row="3">
-                <Label x:Uid="Label_3" Content="{Binding Path=Restrictions}" Margin="0,0,10,0" FontSize="12"  VerticalAlignment="Bottom" HorizontalAlignment="Left" Style="{StaticResource ColorByRestriction}" />
-                <StackPanel x:Uid="StackPanel_1" Orientation="Horizontal" DataContext="{Binding SelectedExtension}" FlowDirection="RightToLeft">
-                    <Button x:Uid="addHandler" Content="Add File Meta Handler" Height="23" Name="addHandler" Margin="20,0,0,0" FontSize="12" Click="addHandler_Click" IsEnabled="{Binding Path=CanAddPropertyHandlerEtc}" />
-                    <Button x:Uid="removeHandler" Content="Remove File Meta Handler" Height="23" Name="removeHandler" Margin="10,0,0,0" FontSize="12" Click="removeHandler_Click" IsEnabled="{Binding Path=CanRemovePropertyHandlerEtc}" />
-                </StackPanel>
             </Grid>
         </Grid>
     </Grid>
