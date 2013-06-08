@@ -109,6 +109,7 @@ public:
 
 
 private:
+	bool CContextMenuHandler::MetadataPresent();
 	void CContextMenuHandler::ExportMetadata (xml_document<WCHAR> *doc);
 	void CContextMenuHandler::ExportPropertySetData (xml_document<WCHAR> *doc, xml_node<WCHAR> *root, FMTID fmtid, IPropertyStorage *pPropStg);
 	void CContextMenuHandler::ImportMetadata (xml_document<WCHAR> *doc);
@@ -179,6 +180,8 @@ IFACEMETHODIMP CContextMenuHandler::Initialize(
                 if (0 != DragQueryFile(hDrop, 0, m_szSelectedFile, 
                     ARRAYSIZE(m_szSelectedFile)))
                 {
+					StringCbCopyW(m_szXmlFile, MAX_PATH, m_szSelectedFile);
+					StringCbCatW(m_szXmlFile, MAX_PATH, MetadataFileSuffix);
                     hr = S_OK;
                 }
             }
@@ -219,18 +222,34 @@ IFACEMETHODIMP CContextMenuHandler::QueryContextMenu(
     // First, create and populate a submenu.
     HMENU hSubmenu = CreatePopupMenu();
     UINT uID = idCmdFirst;
-	WCHAR buffer[MAX_PATH];
+	WCHAR buffer[2*MAX_PATH];
 
+	// Export
     AccessResourceString(IDS_EXPORT, buffer, MAX_PATH);
+	StringCbCatW(buffer, 2*MAX_PATH, m_szXmlFile);
 	if (!InsertMenu ( hSubmenu, 0, MF_BYPOSITION, uID++, buffer) )
 		return HRESULT_FROM_WIN32(GetLastError());
 
+	// Import
     AccessResourceString(IDS_IMPORT, buffer, MAX_PATH);
-    if (!InsertMenu ( hSubmenu, 1, MF_BYPOSITION, uID++, buffer) )
+	StringCbCatW(buffer, 2*MAX_PATH, m_szXmlFile);
+	UINT uMenuFlags = MF_BYPOSITION;
+
+	// Grey menu item if file does not exist or cannot be opened
+	wifstream myfile;
+	myfile.open (m_szXmlFile, ios_base::in );
+	if (!myfile.is_open())
+		uMenuFlags |= MF_GRAYED;
+	myfile.close();
+    if (!InsertMenu ( hSubmenu, 1, uMenuFlags, uID++, buffer) )
 		return HRESULT_FROM_WIN32(GetLastError());
 
+	// Delete
 	AccessResourceString(IDS_DELETE, buffer, MAX_PATH);
-    if (!InsertMenu ( hSubmenu, 2, MF_BYPOSITION, uID++, buffer) )
+	uMenuFlags = MF_BYPOSITION;
+	if (!MetadataPresent())
+		uMenuFlags |= MF_GRAYED;
+    if (!InsertMenu ( hSubmenu, 2, uMenuFlags, uID++, buffer) )
 		return HRESULT_FROM_WIN32(GetLastError());
 
     // Insert the submenu into the ctx menu provided by Explorer.
@@ -280,8 +299,6 @@ IFACEMETHODIMP CContextMenuHandler::InvokeCommand(LPCMINVOKECOMMANDINFO pici)
 
 				// Now write from the XML string to a file stream
 				wofstream myfile;
-				StringCbCopyW(m_szXmlFile, MAX_PATH, m_szSelectedFile);
-				StringCbCatW(m_szXmlFile, MAX_PATH, MetadataFileSuffix);
 				myfile.open (m_szXmlFile, ios_base::out | ios_base::trunc );
 
 				myfile << s.c_str();
@@ -303,8 +320,6 @@ IFACEMETHODIMP CContextMenuHandler::InvokeCommand(LPCMINVOKECOMMANDINFO pici)
 			try
 			{
 				wifstream myfile;
-				StringCbCopyW(m_szXmlFile, MAX_PATH, m_szSelectedFile);
-				StringCbCatW(m_szXmlFile, MAX_PATH, MetadataFileSuffix);
 				myfile.open (m_szXmlFile, ios_base::in );
 
 				// rapidxml parsing works only from a string, so read the whole file
@@ -388,6 +403,44 @@ IFACEMETHODIMP CContextMenuHandler::GetCommandString(UINT_PTR idCommand,
     return hr;
 }
 
+bool CContextMenuHandler::MetadataPresent()
+{
+    HRESULT hr = E_UNEXPECTED;
+	bool present = false;
+
+	if (GetStgOpenStorageEx())
+	{
+		IPropertySetStorage* pPropSetStg = NULL;
+		IPropertyStore * pStore = NULL;		
+
+		try
+		{
+			hr = (v_pfnStgOpenStorageEx)(m_szSelectedFile, STGM_READ | STGM_SHARE_EXCLUSIVE, STGFMT_FILE, 0, NULL, 0, 
+					IID_IPropertySetStorage, (void**)&pPropSetStg);
+			if( FAILED(hr) ) 
+				throw new CPHException(hr, IDS_E_IPSS_1, hr);
+
+			// We use IPropertyStore for simplicity
+			hr = PSCreatePropertyStoreFromPropertySetStorage(pPropSetStg, STGM_READWRITE, IID_IPropertyStore, (void **)&pStore);
+			SafeRelease(&pPropSetStg);
+			if( FAILED(hr) ) 
+				throw new CPHException(hr, IDS_E_PSCREATE_1, hr);
+
+			DWORD cProps;
+			pStore->GetCount(&cProps);
+			present = cProps > 0;
+		}
+		catch (CPHException * e)
+		{
+			SafeRelease(&pStore);
+			throw e;
+		}
+
+		SafeRelease(&pStore);
+	}
+
+	return present;
+}
 
 void CContextMenuHandler::ExportMetadata (xml_document<WCHAR> *doc)
 {
