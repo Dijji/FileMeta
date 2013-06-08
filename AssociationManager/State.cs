@@ -18,12 +18,10 @@ namespace FileMetadataAssociationManager
         private Dictionary<string, Extension> dictExtensions = new Dictionary<string, Extension>();
         private Extension selectedExtension = null;
         private Profile selectedProfile = null;
-        private ObservableCollection<TreeItem> allProperties = new ObservableCollection<TreeItem>();
         private ObservableCollection<Profile> profiles = new ObservableCollection<Profile>();
         private List<string> groupProperties = new List<string>();
 
         public ObservableCollectionWithReset<Extension> Extensions { get { return extensions; } }
-        public ObservableCollection<TreeItem> AllProperties { get { return allProperties; } }
         public ObservableCollection<Profile> Profiles { get { return profiles; } }
 
         public List<string> GroupProperties { get { return groupProperties; } }
@@ -136,55 +134,12 @@ namespace FileMetadataAssociationManager
                         string propName;
                         propertyDescription.GetCanonicalName(out propName);
 
-                        List<string> names = null;
                         string[] parts = propName.Split('.');
-                        if (parts.Count() == 2)
-                        {
-                            // System.Foo
-                            if (!dict.TryGetValue(parts[0], out names))
-                            {
-                                names = new List<string>();
-                                dict.Add(parts[0], names);
-                            }
-                            names.Add(parts[1]);
-                        }
-                        else if (parts.Count() == 3)
-                        {
-                            // System.Bar.Baz
-                            if (!dict.TryGetValue(parts[1], out names))
-                            {
-                                names = new List<string>();
-                                dict.Add(parts[1], names);
-                            }
-                            names.Add(parts[2]);
-                        }
 
-                        // If we ever need it:
-                        // ShellPropertyDescription desc = new ShellPropertyDescription(propertyDescription);
+                        // All we need are the property groups
+                        if (parts.Count() == 3 && parts[1] == "PropGroup")
+                            GroupProperties.Add(parts[2]);
 
-                        if (propertyDescription != null)
-                        {
-                            Marshal.ReleaseComObject(propertyDescription);
-                            propertyDescription = null;
-                        }
-                    }
-
-                    // build tree
-                    foreach (string cat in dict.Keys)
-                    {
-                        TreeItem main = new TreeItem(cat);
-                        foreach (string name in dict[cat])
-                            main.Children.Add(new TreeItem(name));
-
-                        if (cat == "System")
-                            AllProperties.Insert(0, main);
-                        else if (cat == "PropGroup")
-                        {
-                            foreach (TreeItem ti in main.Children)
-                                GroupProperties.Add(ti.Name);
-                        }
-                        else
-                            AllProperties.Add(main);
                     }
                 }
             }

@@ -87,16 +87,17 @@ namespace FileMetadataAssociationManager
         public static List<Profile> GetBuiltinProfiles(State state)
         {
             List<Profile> ps = new List<Profile>();
-            Profile p = new Profile { Name = "Office DSOfile" };
-            p.State = state;
-            p.ParseFullDetails(FullDetailsOfficeProfile);
-            p.ParsePreviewDetails(PreviewDetailsOfficeProfile);
-            ps.Add(p);
 
-            p = new Profile { Name = "Simple" };
+            Profile p = new Profile { Name = "Simple" };
             p.State = state;
             p.ParseFullDetails(FullDetailsSimpleProfile);
             p.ParsePreviewDetails(PreviewDetailsSimpleProfile);
+            ps.Add(p);
+
+            p = new Profile { Name = "Office DSOfile" };
+            p.State = state;
+            p.ParseFullDetails(FullDetailsOfficeProfile);
+            p.ParsePreviewDetails(PreviewDetailsOfficeProfile);
             ps.Add(p);
 
             return ps;
