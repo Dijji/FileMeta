@@ -33,7 +33,7 @@ namespace FileMetadataAssociationManager
             if (listExtensions.Items.Count > 0)
                 listExtensions.SelectedItem = listExtensions.Items[0];
 
-            if (comboProfile.Items.Count > 0)
+            if (comboProfile.Items.Count > 0 && comboProfile.SelectedItem == null)
                 comboProfile.SelectedItem = comboProfile.Items[0];
         }
 
