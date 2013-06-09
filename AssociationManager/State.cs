@@ -19,12 +19,10 @@ namespace FileMetadataAssociationManager
         private Extension selectedExtension = null;
         private Profile selectedProfile = null;
         private ObservableCollection<Profile> profiles = new ObservableCollection<Profile>();
-        private List<string> groupProperties = new List<string>();
 
         public ObservableCollectionWithReset<Extension> Extensions { get { return extensions; } }
         public ObservableCollection<Profile> Profiles { get { return profiles; } }
 
-        public List<string> GroupProperties { get { return groupProperties; } }
         public Extension SelectedExtension { get { return selectedExtension; } set { selectedExtension = value; OnPropertyChanged("SelectedExtension"); } }
         public Profile SelectedProfile { get { return selectedProfile; } set { selectedProfile = value; OnPropertyChanged("SelectedProfile"); } }
 
@@ -57,7 +55,6 @@ namespace FileMetadataAssociationManager
         public void Populate()
         {
             PopulateExtensions();
-            PopulateSystemProperties();
             PopulateProfiles();
         }
         
@@ -109,51 +106,6 @@ namespace FileMetadataAssociationManager
                         f.ForeignHandler ? 1 :
                             e.Name.CompareTo(f.Name));
             //Extensions.NotifyReset();
-        }
-
-        private void PopulateSystemProperties()
-        {
-            IPropertyDescriptionList propertyDescriptionList = null;
-            IPropertyDescription propertyDescription = null;
-            Guid guid = new Guid(ShellIIDGuid.IPropertyDescriptionList);
-
-            try
-            {
-                int hr = PropertySystemNativeMethods.PSEnumeratePropertyDescriptions(PropertySystemNativeMethods.PropDescEnumFilter.PDEF_ALL, ref guid, out propertyDescriptionList);
-                if (hr >= 0)
-                {
-                    uint count;
-                    propertyDescriptionList.GetCount(out count);
-                    guid = new Guid(ShellIIDGuid.IPropertyDescription);
-                    Dictionary<string, List<string>> dict = new Dictionary<string, List<string>>();
-
-                    for (uint i = 0; i < count; i++)
-                    {
-                        propertyDescriptionList.GetAt(i, ref guid, out propertyDescription);
-
-                        string propName;
-                        propertyDescription.GetCanonicalName(out propName);
-
-                        string[] parts = propName.Split('.');
-
-                        // All we need are the property groups
-                        if (parts.Count() == 3 && parts[1] == "PropGroup")
-                            GroupProperties.Add(parts[2]);
-
-                    }
-                }
-            }
-            finally
-            {
-                if (propertyDescriptionList != null)
-                {
-                    Marshal.ReleaseComObject(propertyDescriptionList);
-                }
-                if (propertyDescription != null)
-                {
-                    Marshal.ReleaseComObject(propertyDescription);
-                }
-            }
         }
 
         private void PopulateProfiles()

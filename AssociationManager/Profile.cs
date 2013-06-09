@@ -34,13 +34,7 @@ namespace FileMetadataAssociationManager
 
             Dictionary<string, TreeItem> groups = new Dictionary<string, TreeItem>();
 
-            // Seed the tree with the known groups
-            foreach (string g in State.GroupProperties)
-            {
-                groups.Add(g, new TreeItem(g));
-            }
-
-            if (registryEntry.StartsWith("prop:"))
+             if (registryEntry.StartsWith("prop:"))
                 registryEntry = registryEntry.Remove(0, 5);
             
             string[] props = registryEntry.Split(';');
@@ -53,8 +47,12 @@ namespace FileMetadataAssociationManager
                 if (parts.Length == 3 && parts[0] == "System" && parts[1] == "PropGroup")
                 {
                     // put following entries under the specified group
-                    if (groups.ContainsKey(parts[2]))
-                        curr = groups[parts[2]];
+                    string group = parts[2];
+                    if (!groups.TryGetValue(group, out curr))
+                    {
+                        curr = new TreeItem(group);
+                        groups.Add(group, curr);
+                    }
                 }
                 else if (curr != null)
                 {

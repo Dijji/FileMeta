@@ -25,7 +25,7 @@
             <ColumnDefinition x:Uid="ColumnDefinition_2" Width="5*"/>
         </Grid.ColumnDefinitions>
         <StackPanel x:Uid="StackPanel_1" Grid.Column="0" Margin="0,30,0,0">
-            <TextBlock x:Uid="TextBlock_6" Text="To add metadata for extension:" FontSize="12" FontWeight="Bold"  Margin="5,0,0,0"/>
+            <TextBlock x:Uid="TextBlock_6" Text="To add metadata for extension:" TextWrapping="Wrap" FontSize="12" FontWeight="Bold"  Margin="5,0,0,0"/>
             <StackPanel x:Uid="StackPanel_2" Orientation="Horizontal" Margin="0,15,0,0">
                 <TextBlock x:Uid="TextBlock_7" Text="1." FontSize="12" Margin="5,0,0,0"/>
                 <TextBlock x:Uid="TextBlock_8" Text="Select a File Extension with no Handler" FontSize="12" Width="175" Margin="5,0,0,0" TextWrapping="Wrap"/>
@@ -43,7 +43,7 @@
             </ComboBox>
             <TextBlock x:Uid="TextBlock_11" Text="3. " FontSize="12" Margin="5,5,0,5"/>
             <Button x:Uid="addHandler" Content="Add File Meta Handler" Height="23" Name="addHandler" Margin="10,0,15,0" FontSize="12" Click="addHandler_Click" DataContext="{Binding SelectedExtension}" IsEnabled="{Binding Path=CanAddPropertyHandlerEtc}" />
-            <TextBlock x:Uid="TextBlock_12" Text="To remove handler for extension:" FontSize="12" FontWeight="Bold" Margin="5,60,0,0"/>
+            <TextBlock x:Uid="TextBlock_12" Text="To remove handler for extension:" TextWrapping="Wrap" FontSize="12" FontWeight="Bold" Margin="5,60,0,0"/>
             <StackPanel x:Uid="StackPanel_4" Orientation="Horizontal" Margin="0,15,0,0">
                 <TextBlock x:Uid="TextBlock_13" Text="1." FontSize="12" Margin="5,0,0,0"/>
                 <TextBlock x:Uid="TextBlock_14" Text="Select a File Extension with the File Meta Property Handler" FontSize="12" Width="175" Margin="5,0,0,0" TextWrapping="Wrap"/>
@@ -104,7 +104,7 @@
                     <ColumnDefinition x:Uid="ColumnDefinition_5" Width="1*"/>
                 </Grid.ColumnDefinitions>
                 <Label x:Uid="Label_7" Grid.Column="1" Content="Preview Panel" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="12"/>
-                <Label x:Uid="Label_6" Grid.Column="2" Content="Full details" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="12"/>
+                <Label x:Uid="Label_6" Grid.Column="2" Content="Details tab in Properties" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="12"/>
             </Grid>
             <Grid x:Uid="Grid_6" Grid.Row="2">
                 <Grid.ColumnDefinitions>
