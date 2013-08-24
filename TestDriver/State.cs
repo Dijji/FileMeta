@@ -71,7 +71,9 @@ namespace TestDriver
             Tests.Add(new RoundTrip1());
             Tests.Add(new RoundTrip2());
             Tests.Add(new RoundTrip3());
+            Tests.Add(new RoundTrip4());
             Tests.Add(new ExportImport1());
+            Tests.Add(new ExportImport2());
             Tests.Add(new TestProperties1());
             SelectedTest = Tests.Count > 0 ? Tests[0] : null;
         }

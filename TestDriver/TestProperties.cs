@@ -484,7 +484,6 @@ namespace TestDriver
         private string RandomString(int? size = null)
         {
             StringBuilder builder = new StringBuilder();
-            char ch;
 
             // If no size specified, use 1 to 16 at random
             if (size == null)
@@ -492,11 +491,21 @@ namespace TestDriver
 
             for (int i = 0; i < size; i++)
             {
-                // use mixed case
-                ch = Convert.ToChar(random.Next(26) + 65 + random.Next(2) * 32);
-                builder.Append(ch);
+                builder.Append(RandomChar());
             }
             return builder.ToString();
+        }
+
+        static string nonLatin = "할말있어Приветствия";
+
+        private char RandomChar()
+        {
+            int c = random.Next(36);
+            if (c < 26)
+                // mixed case Latin
+                return Convert.ToChar(c + 65 + random.Next(2) * 32);
+            else
+                return nonLatin[c - 26];
         }
     }
 }

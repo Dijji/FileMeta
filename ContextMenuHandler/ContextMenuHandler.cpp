@@ -8,16 +8,19 @@
 #include <propkey.h>
 #include <Propvarutil.h>
 #include <shlobj.h>     // For IShellExtInit and IContextMenu
+#include <atlbase.h>	// For CComPtr
 #include <strsafe.h>
 #include "resource.h"
 #include "dll.h"
 #include "RegisterExtension.h"
+#undef RAPIDXML_NO_EXCEPTIONS
 #include "rapidxml.hpp"
 #include "rapidxml_print.hpp"
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include <algorithm>
 using namespace std;
 using namespace rapidxml;
 
@@ -111,9 +114,9 @@ public:
 private:
 	bool CContextMenuHandler::MetadataPresent();
 	void CContextMenuHandler::ExportMetadata (xml_document<WCHAR> *doc);
-	void CContextMenuHandler::ExportPropertySetData (xml_document<WCHAR> *doc, xml_node<WCHAR> *root, FMTID fmtid, IPropertyStorage *pPropStg);
+	void CContextMenuHandler::ExportPropertySetData (xml_document<WCHAR> *doc, xml_node<WCHAR> *root, PROPERTYKEY* keys, long& index, CComPtr<IPropertyStore> pStore);
 	void CContextMenuHandler::ImportMetadata (xml_document<WCHAR> *doc);
-	void CContextMenuHandler::ImportPropertySetData (xml_document<WCHAR> *doc, xml_node<WCHAR> *stor, FMTID fmtid, IPropertyStore * pStore);
+	void CContextMenuHandler::ImportPropertySetData (xml_document<WCHAR> *doc, xml_node<WCHAR> *stor, FMTID fmtid, CComPtr<IPropertyStore> pStore);
 	void CContextMenuHandler::DeleteMetadata ();
 
 	~CContextMenuHandler()
@@ -292,55 +295,118 @@ IFACEMETHODIMP CContextMenuHandler::InvokeCommand(LPCMINVOKECOMMANDINFO pici)
 				xml_document<WCHAR> doc;
 				ExportMetadata(&doc);
 
-				// writing to a string rather than directly to the strean is odd, writing directly does not compile
+				// writing to a string rather than directly to the stream is odd, but writing directly does not compile
 				// (trying to access a private constructor on traits - a typically arcane template issue)
 				wstring s;
 				print(std::back_inserter(s), doc, 0);
 
 				// Now write from the XML string to a file stream
-				wofstream myfile;
-				myfile.open (m_szXmlFile, ios_base::out | ios_base::trunc );
+				// This used to be STL, but wofstream by default writes 8-bit encoded files, and changing that is complex
+				FILE *pfile;
+				errno_t err = _wfopen_s(&pfile, m_szXmlFile, L"w+, ccs=UTF-16LE");
+				if (0 == err)
+				{
+					fwrite(s.c_str(), sizeof(WCHAR), s.length(), pfile);
+					fclose(pfile);
+				}
+				else
+					throw CPHException(E_FAIL, IDS_E_FILEOPEN_1, err);
 
-				myfile << s.c_str();
-
-				myfile.flush();
-				myfile.close();
 				hr = S_OK;
 			}
-			catch(CPHException * e)
+			catch(CPHException& e)
 			{
 				WCHAR buffer[MAX_PATH];
 				AccessResourceString(IDS_EXPORT_FAILED, buffer, MAX_PATH);
-				MessageBox(NULL, e->_pszError, buffer, MB_OK);
-				hr = e->_hr;
+				MessageBox(NULL, e._pszError, buffer, MB_OK);
+				hr = e._hr;
 			}
 			break;
 
 		case IDM_IMPORT:
 			try
 			{
-				wifstream myfile;
-				myfile.open (m_szXmlFile, ios_base::in );
-
 				// rapidxml parsing works only from a string, so read the whole file
- 				wstring buffer((istreambuf_iterator<WCHAR>(myfile)), istreambuf_iterator<WCHAR>( ));
-				buffer.push_back('\0');
+				FILE *pfile;
+				errno_t err = _wfopen_s(&pfile, m_szXmlFile, L"rb");
+				if (0 == err)
+				{
+					fseek (pfile , 0 , SEEK_END);
+					size_t lSize = ftell (pfile);  // size in bytes
+					rewind (pfile);
 
-				// parse thw XML
-				xml_document<WCHAR> doc;
-				WCHAR * xml = doc.allocate_string(buffer.c_str(), buffer.length()+1);  // copy to non-constant form
-				doc.parse<0>(xml);
+					CHAR* buffer = new CHAR[lSize + sizeof(WCHAR)];
+					WCHAR* wbuffer;
+					size_t lwSize;
+					size_t offset = 0;
 
-				// apply it 
-				ImportMetadata(&doc);
+					fread(buffer, sizeof(CHAR), lSize, pfile);
+					fclose(pfile);
+
+					// export files are now UTF-16 with BOM
+					if (buffer[0] == (CHAR)0xFF && buffer[1] == (CHAR)0xFE)
+					{
+						wbuffer = (WCHAR*) buffer;
+						lwSize = lSize / sizeof(WCHAR);
+						wbuffer[lwSize] = L'\0';  // ensure termination
+						offset++;  // skip BOM
+					}
+					// but also cope with ASCII files from our previous versions, or that have been hand-edited in ASCII
+					else
+					{
+						wbuffer = new WCHAR[lSize + 1];
+						lwSize = lSize;
+						size_t conv;
+						mbstowcs_s(&conv, wbuffer, lSize+1, buffer, lSize);
+						delete [] buffer;
+					}
+
+					// parse the XML
+					xml_document<WCHAR> doc;
+					WCHAR * xml = doc.allocate_string(wbuffer+offset, lwSize+1-offset);  
+
+					if (offset == 0) // ASCII file
+						delete [] wbuffer;
+					else
+						delete [] buffer;
+	
+					try
+					{
+						doc.parse<0>(xml);
+					}
+					catch(parse_error& e)
+					{
+						size_t size = strlen(e.what()) + 1;
+						WCHAR * error = new WCHAR[size];
+						size_t convertedChars = 0;
+						mbstowcs_s(&convertedChars, error, size, e.what(), _TRUNCATE);
+
+#define MAX_ERRLENGTH 20
+						WCHAR content[MAX_ERRLENGTH + 1];
+						size = wcslen(e.where<WCHAR>());
+						if (size > MAX_ERRLENGTH)
+							size = MAX_ERRLENGTH;
+						wmemcpy(content, e.where<WCHAR>(), size);
+						content[MAX_ERRLENGTH] = L'\0';  // ensure termination
+
+						CPHException cphe = CPHException(E_FAIL, IDS_E_XML_PARSE_ERROR_2, error, content);
+						delete [] error;
+						throw cphe;
+					}
+
+					// apply it 
+					ImportMetadata(&doc);
+				}
+				else
+					throw CPHException(E_FAIL, IDS_E_FILEOPEN_1, err);
 			}
-			catch(CPHException * e)
+			catch(CPHException& e)
 			{
 				WCHAR buffer[MAX_PATH];
 				AccessResourceString(IDS_IMPORT_FAILED, buffer, MAX_PATH);
-				MessageBox(NULL, e->_pszError, buffer, MB_OK);
+				MessageBox(NULL, e._pszError, buffer, MB_OK);
 
-				hr = e->_hr;
+				hr = e._hr;
 			}
 			break;
 
@@ -349,13 +415,13 @@ IFACEMETHODIMP CContextMenuHandler::InvokeCommand(LPCMINVOKECOMMANDINFO pici)
 			{
 				DeleteMetadata();
 			}
-			catch(CPHException * e)
+			catch(CPHException& e)
 			{
 				WCHAR buffer[MAX_PATH];
 				AccessResourceString(IDS_DELETE_FAILED, buffer, MAX_PATH);
-				MessageBox(NULL, e->_pszError, buffer, MB_OK);
+				MessageBox(NULL, e._pszError, buffer, MB_OK);
 
-				hr = e->_hr;
+				hr = e._hr;
 			}
 			break;
 		}
@@ -410,36 +476,39 @@ bool CContextMenuHandler::MetadataPresent()
 
 	if (GetStgOpenStorageEx())
 	{
-		IPropertySetStorage* pPropSetStg = NULL;
-		IPropertyStore * pStore = NULL;		
+		CComPtr<IPropertySetStorage> pPropSetStg;
+		CComPtr<IPropertyStore> pStore;		
 
-		try
-		{
-			hr = (v_pfnStgOpenStorageEx)(m_szSelectedFile, STGM_READ | STGM_SHARE_EXCLUSIVE, STGFMT_FILE, 0, NULL, 0, 
-					IID_IPropertySetStorage, (void**)&pPropSetStg);
-			if( FAILED(hr) ) 
-				throw new CPHException(hr, IDS_E_IPSS_1, hr);
+		hr = (v_pfnStgOpenStorageEx)(m_szSelectedFile, STGM_READ | STGM_SHARE_EXCLUSIVE, STGFMT_FILE, 0, NULL, 0, 
+				IID_IPropertySetStorage, (void**)&pPropSetStg);
+		if( FAILED(hr) ) 
+			throw CPHException(hr, IDS_E_IPSS_1, hr);
 
-			// We use IPropertyStore for simplicity
-			hr = PSCreatePropertyStoreFromPropertySetStorage(pPropSetStg, STGM_READWRITE, IID_IPropertyStore, (void **)&pStore);
-			SafeRelease(&pPropSetStg);
-			if( FAILED(hr) ) 
-				throw new CPHException(hr, IDS_E_PSCREATE_1, hr);
+		// We use IPropertyStore for simplicity
+		hr = PSCreatePropertyStoreFromPropertySetStorage(pPropSetStg, STGM_READWRITE, IID_IPropertyStore, (void **)&pStore);
+		pPropSetStg.Release();
+		if( FAILED(hr) ) 
+			throw CPHException(hr, IDS_E_PSCREATE_1, hr);
 
-			DWORD cProps;
-			pStore->GetCount(&cProps);
-			present = cProps > 0;
-		}
-		catch (CPHException * e)
-		{
-			SafeRelease(&pStore);
-			throw e;
-		}
-
-		SafeRelease(&pStore);
+		DWORD cProps;
+		pStore->GetCount(&cProps);
+		present = cProps > 0;
 	}
 
 	return present;
+}
+
+inline bool operator<(const PROPERTYKEY& a, const PROPERTYKEY& b)
+{
+	if (a.fmtid.Data1 != b.fmtid.Data1)
+		return a.fmtid.Data1 < b.fmtid.Data1;
+	else if (a.fmtid.Data2 != b.fmtid.Data2)
+		return a.fmtid.Data2 < b.fmtid.Data2;
+	else if (a.fmtid.Data3 != b.fmtid.Data3)
+		return a.fmtid.Data3 < b.fmtid.Data3;
+	// should be enough without Data4 checks (it is a char[8])
+	else
+		return a.pid < b.pid;
 }
 
 void CContextMenuHandler::ExportMetadata (xml_document<WCHAR> *doc)
@@ -451,88 +520,83 @@ void CContextMenuHandler::ExportMetadata (xml_document<WCHAR> *doc)
 
 	if (GetStgOpenStorageEx())
 	{
-		IPropertySetStorage* pPropSetStg = NULL;
-		IPropertyStorage *pPropStg = NULL;
-		IEnumSTATPROPSETSTG *penum = NULL;
-		STATPROPSETSTG statpropsetstg;
+		CComPtr<IPropertySetStorage> pPropSetStg;
+		CComPtr<IPropertyStore> pStore;
+		PROPERTYKEY * keys = NULL;
 
 		try
 		{
 			hr = (v_pfnStgOpenStorageEx)(m_szSelectedFile, STGM_READ | STGM_SHARE_EXCLUSIVE, STGFMT_FILE, 0, NULL, 0, 
 					IID_IPropertySetStorage, (void**)&pPropSetStg);
 			if( FAILED(hr) ) 
-				throw new CPHException(hr, IDS_E_IPSS_1, hr);
+				throw CPHException(hr, IDS_E_IPSS_1, hr);
 
-		    hr = pPropSetStg->Enum( &penum );
+			hr = PSCreatePropertyStoreFromPropertySetStorage(pPropSetStg, STGM_READWRITE, IID_IPropertyStore, (void **)&pStore);
+			pPropSetStg.Release();
 			if( FAILED(hr) ) 
-				throw new CPHException(hr, IDS_E_IPSS_ENUM_1, hr);
+				throw CPHException(hr, IDS_E_PSCREATE_1, hr);
 
-			memset( &statpropsetstg, 0, sizeof(statpropsetstg) );
-	        hr = penum->Next( 1, &statpropsetstg, NULL );
+			DWORD cProps;
+			PROPVARIANT propvar;
+			hr = pStore->GetCount(&cProps);
+			if( FAILED(hr) ) 
+				throw CPHException(hr, IDS_E_IPS_GETCOUNT_1, hr);
 
-	        // Loop through all the property sets.
-			while( S_OK == hr )
+			keys = new PROPERTYKEY[cProps];
+
+			for (DWORD i = 0; i < cProps; i++)
 			{
-				// Open the property set.
-				hr = pPropSetStg->Open( statpropsetstg.fmtid,
-										STGM_READ | STGM_SHARE_EXCLUSIVE,
-										&pPropStg );
+				hr = pStore->GetAt(i, &keys[i]);
 				if( FAILED(hr) ) 
-				{
-					WCHAR pGuid[64];
-					StringFromGUID2( statpropsetstg.fmtid, pGuid, 64);		
-					throw new CPHException(hr, IDS_E_IPSS_OPEN_2, hr, pGuid);
-				}
-
-				// Export the properties in the property set - throws exceptions on error
-				ExportPropertySetData( doc, root, statpropsetstg.fmtid, pPropStg );
-
-				SafeRelease(&pPropStg);
-
-				// Get the next property set in the enumeration.
-				hr = penum->Next( 1, &statpropsetstg, NULL );
+					throw CPHException(hr, IDS_E_IPS_GETAT_1, hr);
 			}
-			if( FAILED(hr) )
-				throw new CPHException(hr, IDS_E_IPSS_ENUM_NEXT_1, hr);
+
+			// Sort keys into their property sets
+			// We used to use IPropertyStorage to get the grouping, but this worked badly with Unicode property value
+			sort(keys, &keys[cProps]);
+
+			// Loop through all the properties
+			long index = 0;
+
+			while( index < cProps)
+			{
+				// Export the properties in the property set - throws exceptions on error
+				ExportPropertySetData( doc, root, keys, index, pStore );
+			}
 		}
-		catch (CPHException * e)
+		catch (CPHException& e)
 		{
-			SafeRelease(&pPropSetStg);
-			SafeRelease(&pPropStg);
-			SafeRelease(&penum);
+			delete [] keys;
 			throw e;
 		}
 
-		SafeRelease(&pPropSetStg);
-		SafeRelease(&pPropStg);
-		SafeRelease(&penum);
+		delete [] keys;
 	}
 }
 
 // throws CPHException on error
-void CContextMenuHandler::ExportPropertySetData (xml_document<WCHAR> *doc, xml_node<WCHAR> *root, FMTID fmtid, IPropertyStorage *pPropStg)
+void CContextMenuHandler::ExportPropertySetData (xml_document<WCHAR> *doc, xml_node<WCHAR> *root, PROPERTYKEY* keys, long& index, CComPtr<IPropertyStore> pStore)
 {
     HRESULT hr = E_UNEXPECTED;
-    IEnumSTATPROPSTG *penum = NULL;
-    STATPROPSTG statpropstg;
+
     PROPVARIANT propvar;
     PROPSPEC propspec;
+	GUID currFmtid = keys[index].fmtid;
 
 	PropVariantInit( &propvar );
-	statpropstg.lpwstrName = NULL;
 
 	WCHAR * pGuid = doc->allocate_string(NULL, 64);
-	StringFromGUID2( fmtid, pGuid, 64);
+	StringFromGUID2( currFmtid, pGuid, 64);
 
 	xml_node<WCHAR> *storage = doc->allocate_node(node_element, StorageNodeName);
 	root->append_node(storage);
 
 	xml_attribute<WCHAR> * attr = NULL;
-    if( FMTID_SummaryInformation == fmtid )
+    if( FMTID_SummaryInformation == currFmtid )
 		attr = doc->allocate_attribute(DescriptionAttrName, L"SummaryInformation");
-    else if( FMTID_DocSummaryInformation == fmtid )
+    else if( FMTID_DocSummaryInformation == currFmtid )
        attr = doc->allocate_attribute(DescriptionAttrName, L"DocumentSummaryInformation" );
-    else if( FMTID_UserDefinedProperties == fmtid )
+    else if( FMTID_UserDefinedProperties == currFmtid )
        attr = doc->allocate_attribute(DescriptionAttrName, L"UserDefined" );
 	if (attr != NULL)
 		storage->append_attribute(attr);
@@ -542,30 +606,15 @@ void CContextMenuHandler::ExportPropertySetData (xml_document<WCHAR> *doc, xml_n
 
 	try
 	{
-		// Get a property enumerator.
-		hr = pPropStg->Enum( &penum );
-		if( FAILED(hr) ) 
-			throw new CPHException(hr, IDS_E_IPS_ENUM_2, hr, pGuid);
+		// Loop through each property with the same FMTID
 
-		// Get the first property in the enumeration.
-		hr = penum->Next( 1, &statpropstg, NULL );
-
-		// Loop through each property.  The 'Next'
-		// call above, and at the bottom of the while loop,
-		// will return S_OK if it returns another property,
-		// S_FALSE if there are no more properties,
-		// and anything else is an error.
-
-		while( S_OK == hr )
+		for(; currFmtid == keys[index].fmtid; index++ )
 		{
 			// Read the property out of the property set
 			PropVariantInit( &propvar );
-			propspec.ulKind = PRSPEC_PROPID;
-			propspec.propid = statpropstg.propid;
-
-			hr = pPropStg->ReadMultiple( 1, &propspec, &propvar );
+			hr = pStore->GetValue(keys[index], &propvar);
 			if( FAILED(hr) ) 
-				throw new CPHException(hr, IDS_E_IPS_READ_2, hr, pGuid);
+				throw CPHException(hr, IDS_E_IPS_GETVALUE_3, hr, keys[index].pid, pGuid);
 
 			// Export the property value, type, and so on.
 			WCHAR* wszId = doc->allocate_string(NULL, 20);
@@ -573,18 +622,15 @@ void CContextMenuHandler::ExportPropertySetData (xml_document<WCHAR> *doc, xml_n
 			WCHAR* wszType = doc->allocate_string(NULL, MAX_PATH + 1);
 			WCHAR* wszValue = doc->allocate_string(NULL, MAX_PATH + 1);
 
-			StringCbPrintf (wszId, 20, L"%d", statpropstg.propid);
-			StringCbPrintf (wszTypeId, 20, L"%d", statpropstg.vt);
-			ConvertVarTypeToString( statpropstg.vt, wszType, MAX_PATH);
+			StringCbPrintf (wszId, 20, L"%d", keys[index].pid);
+			StringCbPrintf (wszTypeId, 20, L"%d", propvar.vt);
+			ConvertVarTypeToString( propvar.vt, wszType, MAX_PATH);
 
 			xml_node<WCHAR> *prop = doc->allocate_node(node_element, PropertyNodeName);
 			storage->append_node(prop);
 
 			PWSTR pName = NULL;
-			PROPERTYKEY key;
-			key.fmtid = fmtid;
-			key.pid = statpropstg.propid;
-			hr = PSGetNameFromPropertyKey(key, &pName);
+			hr = PSGetNameFromPropertyKey(keys[index], &pName);
 
 			// If we don't get a name, don't worry as it is for documentation only and not read on import
 			if (SUCCEEDED(hr))
@@ -610,7 +656,7 @@ void CContextMenuHandler::ExportPropertySetData (xml_document<WCHAR> *doc, xml_n
 			// It does put a blank after each semicolon separator though, which we have to remove on import.
 			if (propvar.vt & VT_VECTOR)
 			{
-				hr = PSFormatForDisplay(key, propvar, PDFF_DEFAULT, wszValue, MAX_PATH);
+				hr = PSFormatForDisplay(keys[index], propvar, PDFF_DEFAULT, wszValue, MAX_PATH);
 
 				if (SUCCEEDED(hr)) 
 				{
@@ -618,7 +664,7 @@ void CContextMenuHandler::ExportPropertySetData (xml_document<WCHAR> *doc, xml_n
 					prop->append_node(node);
 				}
 				else
-					throw new CPHException(hr, IDS_E_PSFORMAT_3, hr, statpropstg.propid, pGuid);
+					throw CPHException(hr, IDS_E_PSFORMAT_3, hr, keys[index].pid, pGuid);
 			}
 			else
 			{
@@ -629,42 +675,20 @@ void CContextMenuHandler::ExportPropertySetData (xml_document<WCHAR> *doc, xml_n
 				{
 					WCHAR* wszDisp = doc->allocate_string(propvarString.pwszVal, wcslen(propvarString.pwszVal)+1);
 
-					// Some Unicode chars in built-in Windows strings give std::wofstream hiccups.  Fix them here
-					// TODO fix the real problem
-					for (unsigned int i = 0; i < wcslen(wszDisp); i++)
-					{
-						if (*(wszDisp + i) == L'\u2013') *(wszDisp + i) = L'-';  // en-dash
-					}
-
 					xml_node<WCHAR> *node = doc->allocate_node(node_element, ValueNodeName, wszDisp);
 					prop->append_node(node);
 				}
 				PropVariantClear(&propvarString);
 				if (FAILED(hr))
-					throw new CPHException(hr, IDS_E_PSFORMAT_3, hr, statpropstg.propid, pGuid);
+					throw CPHException(hr, IDS_E_PSFORMAT_3, hr, keys[index].pid, pGuid);
 			}
-
-            // Move to the next property in the enumeration
-            hr = penum->Next( 1, &statpropstg, NULL );
         }
-        if( FAILED(hr) )
-			throw new CPHException(hr, IDS_E_IPS_ENUM_NEXT_2, hr, pGuid);
     }
-	catch (CPHException * e)
+	catch (CPHException& e)
     {
-		SafeRelease(&penum);
-
-		if( NULL != statpropstg.lpwstrName )
-			CoTaskMemFree( statpropstg.lpwstrName );
-
 		PropVariantClear( &propvar );
 		throw e;
     }
-
-	SafeRelease(&penum);
-
-    if( NULL != statpropstg.lpwstrName )
-        CoTaskMemFree( statpropstg.lpwstrName );
 
     PropVariantClear( &propvar );
 }
@@ -679,83 +703,74 @@ void CContextMenuHandler::ImportMetadata (xml_document<WCHAR> *doc)
 
 	if (GetStgOpenStorageEx())
 	{
-		IPropertySetStorage* pPropSetStg = NULL;
-		IPropertyStore * pStore = NULL;		
+		CComPtr<IPropertySetStorage> pPropSetStg;
+		CComPtr<IPropertyStore> pStore;	
+		 
+		hr = (v_pfnStgOpenStorageEx)(m_szSelectedFile, STGM_READWRITE | STGM_SHARE_EXCLUSIVE, STGFMT_FILE, 0, NULL, 0, 
+				IID_IPropertySetStorage, (void**)&pPropSetStg);
+		if( FAILED(hr) ) 
+			throw CPHException(hr, IDS_E_IPSS_1, hr);
 
-		try
+		// We use IPropertyStore for writing for simplicity
+		hr = PSCreatePropertyStoreFromPropertySetStorage(pPropSetStg, STGM_READWRITE, IID_IPropertyStore, (void **)&pStore);
+		pPropSetStg.Release();
+		if( FAILED(hr) ) 
+			throw CPHException(hr, IDS_E_PSCREATE_1, hr);
+
+		xml_node<WCHAR>* root = doc->first_node();
+		if (wcscmp(root->name(), MetadataNodeName) != 0)
+			throw CPHException(E_UNEXPECTED, IDS_E_ROOT_1, root->name());
+
+		// iterate over the storages
+		xml_node<WCHAR>* stor = root->first_node();
+		while (stor)
 		{
-			hr = (v_pfnStgOpenStorageEx)(m_szSelectedFile, STGM_READWRITE | STGM_SHARE_EXCLUSIVE, STGFMT_FILE, 0, NULL, 0, 
-					IID_IPropertySetStorage, (void**)&pPropSetStg);
-			if( FAILED(hr) ) 
-				throw new CPHException(hr, IDS_E_IPSS_1, hr);
+			if (wcscmp(stor->name(), StorageNodeName) != 0)
+				throw CPHException(E_UNEXPECTED, IDS_E_STORAGE_1, stor->name());
 
-			// We use IPropertyStore for writing for simplicity
-			hr = PSCreatePropertyStoreFromPropertySetStorage(pPropSetStg, STGM_READWRITE, IID_IPropertyStore, (void **)&pStore);
-			SafeRelease(&pPropSetStg);
-			if( FAILED(hr) ) 
-				throw new CPHException(hr, IDS_E_PSCREATE_1, hr);
+			xml_attribute<WCHAR>* id = stor->first_attribute(FormatIDAttrName);
+			if (!id)
+				throw CPHException(E_UNEXPECTED, IDS_E_NOFORMATID);
 
-			xml_node<WCHAR>* root = doc->first_node();
-			if (wcscmp(root->name(), MetadataNodeName) != 0)
-				throw new CPHException(E_UNEXPECTED, IDS_E_ROOT_1, root->name());
+			FMTID fmtid;
+			hr = CLSIDFromString (id->value(), &fmtid);
+			if (FAILED(hr))
+				throw CPHException(E_UNEXPECTED, IDS_E_BADFORMATID_1, id->value());
 
-			// iterate over the storages
-			xml_node<WCHAR>* stor = root->first_node();
-			while (stor)
-			{
-				if (wcscmp(stor->name(), StorageNodeName) != 0)
-					throw new CPHException(E_UNEXPECTED, IDS_E_STORAGE_1, stor->name());
+			ImportPropertySetData(doc, stor, fmtid, pStore);
 
-				xml_attribute<WCHAR>* id = stor->first_attribute(FormatIDAttrName);
-				if (!id)
-					throw new CPHException(E_UNEXPECTED, IDS_E_NOFORMATID);
-
-				FMTID fmtid;
-				hr = CLSIDFromString (id->value(), &fmtid);
-				if (FAILED(hr))
-					throw new CPHException(E_UNEXPECTED, IDS_E_BADFORMATID_1, id->value());
-
-				ImportPropertySetData(doc, stor, fmtid, pStore);
-
-				stor = stor->next_sibling();
-			}
-		}
-		catch (CPHException * e)
-		{
-			SafeRelease(&pStore);
-			throw e;
+			stor = stor->next_sibling();
 		}
 
 		pStore->Commit();
-		SafeRelease(&pStore);
 	}
 }
 
 
 // throws CPHException on error
-void CContextMenuHandler::ImportPropertySetData (xml_document<WCHAR> *doc, xml_node<WCHAR> *stor, FMTID fmtid, IPropertyStore * pStore)
+void CContextMenuHandler::ImportPropertySetData (xml_document<WCHAR> *doc, xml_node<WCHAR> *stor, FMTID fmtid, CComPtr<IPropertyStore> pStore)
 {
  	// iterate over the properties
 	xml_node<WCHAR>* prop = stor->first_node();
 	while (prop)
 	{
 		if (wcscmp(prop->name(), PropertyNodeName) != 0)
-			throw new CPHException(E_UNEXPECTED, IDS_E_PROPERTY_1, prop->name());
+			throw CPHException(E_UNEXPECTED, IDS_E_PROPERTY_1, prop->name());
 
 		// OK if this is missing
 		xml_attribute<WCHAR>* name = prop->first_attribute(NameAttrName);
 
 		xml_attribute<WCHAR>* id = prop->first_attribute(PropertyIdAttrName);
 		if (!id)
-			throw new CPHException(E_UNEXPECTED, IDS_E_NOID);
+			throw CPHException(E_UNEXPECTED, IDS_E_NOID);
 
 		xml_attribute<WCHAR>* idType = prop->first_attribute(TypeIdAttrName);
 		if (!idType)
-			throw new CPHException(E_UNEXPECTED, IDS_E_NOTYPEID_1, name != NULL ? name->value(): id->value());
+			throw CPHException(E_UNEXPECTED, IDS_E_NOTYPEID_1, name != NULL ? name->value(): id->value());
 
 		xml_node<WCHAR>* val = prop->first_node(ValueNodeName);
 		if (!val)
-			throw new CPHException(E_UNEXPECTED, IDS_E_NOVALUE_1, name != NULL ? name->value(): id->value());
+			throw CPHException(E_UNEXPECTED, IDS_E_NOVALUE_1, name != NULL ? name->value(): id->value());
 
 		WCHAR* stop;
 		VARTYPE vt = (VARTYPE) wcstol(idType->value(), &stop, 10);
@@ -802,7 +817,7 @@ void CContextMenuHandler::ImportPropertySetData (xml_document<WCHAR> *doc, xml_n
 				{
 					hr = pStore->SetValue(key, propvarValue);
 					if (FAILED(hr))
-						throw new CPHException(hr, IDS_E_IPS_SETVALUE_2, hr, name != NULL ? name->value(): id->value());
+						throw CPHException(hr, IDS_E_IPS_SETVALUE_2, hr, name != NULL ? name->value(): id->value());
 
 					TRACEF(L"Set property with Name or Id %s to %s\n",  name != NULL ? name->value(): id->value(), val->value() );
 	
@@ -810,12 +825,12 @@ void CContextMenuHandler::ImportPropertySetData (xml_document<WCHAR> *doc, xml_n
 					PropVariantClear(&propvarValue);
 				}
 				else
-					throw new CPHException(hr, IDS_E_VAR_COERCE_2, hr, name != NULL ? name->value(): id->value());
+					throw CPHException(hr, IDS_E_VAR_COERCE_2, hr, name != NULL ? name->value(): id->value());
 			}
 			else
-				throw new CPHException(hr, IDS_E_VAR_INIT_2, hr, name != NULL ? name->value(): id->value());
+				throw CPHException(hr, IDS_E_VAR_INIT_2, hr, name != NULL ? name->value(): id->value());
 		}
-		catch (CPHException * e)
+		catch (CPHException& e)
 		{
 			PropVariantClear(&propvarString);
 			PropVariantClear(&propvarValue);
@@ -832,52 +847,40 @@ void CContextMenuHandler::DeleteMetadata ()
 
 	if (GetStgOpenStorageEx())
 	{
-		IPropertySetStorage* pPropSetStg = NULL;
-		IEnumSTATPROPSETSTG *penum = NULL;
+		CComPtr<IPropertySetStorage> pPropSetStg;
+		CComPtr<IEnumSTATPROPSETSTG> penum;
 		STATPROPSETSTG statpropsetstg;
 
-		try
+		hr = (v_pfnStgOpenStorageEx)(m_szSelectedFile, STGM_READWRITE | STGM_SHARE_EXCLUSIVE, STGFMT_FILE, 0, NULL, 0, 
+				IID_IPropertySetStorage, (void**)&pPropSetStg);
+		if( FAILED(hr) ) 
+			throw CPHException(hr, IDS_E_IPSS_1, hr);
+
+		hr = pPropSetStg->Enum( &penum );
+		if( FAILED(hr) ) 
+			throw CPHException(hr, IDS_E_IPSS_ENUM_1, hr);
+
+		memset( &statpropsetstg, 0, sizeof(statpropsetstg) );
+	    hr = penum->Next( 1, &statpropsetstg, NULL );
+
+	    // Delete all the property sets.
+		while( S_OK == hr )
 		{
-			hr = (v_pfnStgOpenStorageEx)(m_szSelectedFile, STGM_READWRITE | STGM_SHARE_EXCLUSIVE, STGFMT_FILE, 0, NULL, 0, 
-					IID_IPropertySetStorage, (void**)&pPropSetStg);
+			// Delete the property set.
+			hr = pPropSetStg->Delete( statpropsetstg.fmtid);
 			if( FAILED(hr) ) 
-				throw new CPHException(hr, IDS_E_IPSS_1, hr);
-
-		    hr = pPropSetStg->Enum( &penum );
-			if( FAILED(hr) ) 
-				throw new CPHException(hr, IDS_E_IPSS_ENUM_1, hr);
-
-			memset( &statpropsetstg, 0, sizeof(statpropsetstg) );
-	        hr = penum->Next( 1, &statpropsetstg, NULL );
-
-	        // Delete all the property sets.
-			while( S_OK == hr )
 			{
-				// Delete the property set.
-				hr = pPropSetStg->Delete( statpropsetstg.fmtid);
-				if( FAILED(hr) ) 
-				{
-					WCHAR pGuid[64];
-					StringFromGUID2( statpropsetstg.fmtid, pGuid, 64);		
-					throw new CPHException(hr, IDS_E_IPSS_DELETE_2, hr, pGuid);
-				}
-
-				// Get the next property set in the enumeration.
-				hr = penum->Next( 1, &statpropsetstg, NULL );
-
+				WCHAR pGuid[64];
+				StringFromGUID2( statpropsetstg.fmtid, pGuid, 64);		
+				throw CPHException(hr, IDS_E_IPSS_DELETE_2, hr, pGuid);
 			}
-			if( FAILED(hr) )
-				throw new CPHException(hr, IDS_E_IPSS_ENUM_NEXT_1, hr);
-		}
-		catch (CPHException * e)
-		{
-			SafeRelease(&pPropSetStg);
-			SafeRelease(&penum);
-			throw e;
-		}
 
-		SafeRelease(&pPropSetStg);
-		SafeRelease(&penum);
+			// Get the next property set in the enumeration.
+			hr = penum->Next( 1, &statpropsetstg, NULL );
+
+		}
+		if( FAILED(hr) )
+			throw CPHException(hr, IDS_E_IPSS_ENUM_NEXT_1, hr);
 	}
 }
 #pragma endregion

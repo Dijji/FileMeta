@@ -135,4 +135,46 @@ namespace TestDriver
 #endif
         }
     }
+
+    // Write and read a non-Latin property value using the Property Handler
+    public class RoundTrip4 : Test
+    {
+        public override string Name { get { return "Write & read non-Latin values using Property handler"; } }
+
+        public override bool RunBody(State state)
+        {
+            RequirePropertyHandlerRegistered();
+            RequireTxtProperties();
+
+            const string cval1 = "할말있어";
+            string[] cval2 = { "hello", "Приветствия"};
+
+            //Create a temp file to put metadata on
+            string fileName = CreateFreshFile(1);
+
+            var handler = new CPropertyHandler();
+            handler.Initialize(fileName, 0);
+
+            PropVariant value1 = new PropVariant(cval1);
+            PropVariant value2 = new PropVariant(cval2);
+            // System.Comment
+            handler.SetValue(new TestDriverCodePack.PropertyKey(new Guid("F29F85E0-4FF9-1068-AB91-08002B27B3D9"), 6), value1);
+            // System.Category
+            handler.SetValue(new TestDriverCodePack.PropertyKey(new Guid("D5CDD502-2E9C-101B-9397-08002B2CF9AE"), 2), value2);
+            handler.Commit();
+
+            PropVariant getvalue1 = new PropVariant();
+            PropVariant getvalue2 = new PropVariant();
+            handler.GetValue(new TestDriverCodePack.PropertyKey(new Guid("F29F85E0-4FF9-1068-AB91-08002B27B3D9"), 6), getvalue1);
+            handler.GetValue(new TestDriverCodePack.PropertyKey(new Guid("D5CDD502-2E9C-101B-9397-08002B2CF9AE"), 2), getvalue2);
+            string result1 = (string)getvalue1.Value;
+            string[] result2 = (string[])getvalue2.Value;
+
+            Marshal.ReleaseComObject(handler);  // preempt GC for CCW
+
+            File.Delete(fileName);  // only works if all have let go of the file
+
+            return result1 == cval1 && result2[0] == cval2[0] && result2[1] == cval2[1];
+        }
+    }
 }
