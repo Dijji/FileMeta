@@ -1429,7 +1429,9 @@ namespace rapidxml
         {
             static unsigned char test(Ch ch)
             {
-                return internal::lookup_tables<0>::lookup_whitespace[static_cast<unsigned char>(ch)];
+                //return internal::lookup_tables<0>::lookup_whitespace[static_cast<unsigned char>(ch)];
+				// Hack our way round incomplete rapidxml support for UTF-16.  This compiles and works only if Ch is WCHAR.
+				return (ch == L' ' || ch == L'\t' || ch == L'\r' || ch == L'\n') ? 1 : 0;
             }
         };
 
@@ -1438,8 +1440,24 @@ namespace rapidxml
         {
             static unsigned char test(Ch ch)
             {
-                return internal::lookup_tables<0>::lookup_node_name[static_cast<unsigned char>(ch)];
-            }
+                //return internal::lookup_tables<0>::lookup_node_name[static_cast<unsigned char>(ch)];
+				// Hack our way round incomplete rapidxml support for UTF-16.  This compiles and works only if Ch is WCHAR.
+				// anything but space \n \r \t / > ? \0
+				switch (ch)
+				{
+				case L' ':
+				case L'\n':
+				case L'\r':
+				case L'\t':
+				case L'/':
+				case L'>':
+				case L'?':
+				case L'\0':
+					return 0;
+				default:
+					return 1;
+				}
+			}
         };
 
         // Detect attribute name character
@@ -1447,7 +1465,26 @@ namespace rapidxml
         {
             static unsigned char test(Ch ch)
             {
-                return internal::lookup_tables<0>::lookup_attribute_name[static_cast<unsigned char>(ch)];
+                //return internal::lookup_tables<0>::lookup_attribute_name[static_cast<unsigned char>(ch)];
+				// Hack our way round incomplete rapidxml support for UTF-16.  This compiles and works only if Ch is WCHAR.
+				// anything but space \n \r \t / < > = ? ! \0)
+				switch (ch)
+				{
+				case L' ':
+				case L'\n':
+				case L'\r':
+				case L'\t':
+				case L'/':
+				case L'<':
+				case L'>':
+				case L'=':
+				case L'?':
+				case L'!':
+				case L'\0':
+					return 0;
+				default:
+					return 1;
+				}
             }
         };
 
@@ -1456,7 +1493,9 @@ namespace rapidxml
         {
             static unsigned char test(Ch ch)
             {
-                return internal::lookup_tables<0>::lookup_text[static_cast<unsigned char>(ch)];
+                //return internal::lookup_tables<0>::lookup_text[static_cast<unsigned char>(ch)];
+				// Hack our way round incomplete rapidxml support for UTF-16.  This compiles and works only if Ch is WCHAR.
+				return (ch == L'\0' || ch == L'<') ? 0 : 1;
             }
         };
 
@@ -1465,7 +1504,9 @@ namespace rapidxml
         {
             static unsigned char test(Ch ch)
             {
-                return internal::lookup_tables<0>::lookup_text_pure_no_ws[static_cast<unsigned char>(ch)];
+                //return internal::lookup_tables<0>::lookup_text_pure_no_ws[static_cast<unsigned char>(ch)];
+				// Hack our way round incomplete rapidxml support for UTF-16.  This compiles and works only if Ch is WCHAR.
+				return (ch == L'\0' || ch == L'<' || ch == L'&') ? 0 : 1;
             }
         };
 
@@ -1485,9 +1526,13 @@ namespace rapidxml
             static unsigned char test(Ch ch)
             {
                 if (Quote == Ch('\''))
-                    return internal::lookup_tables<0>::lookup_attribute_data_1[static_cast<unsigned char>(ch)];
+                    //return internal::lookup_tables<0>::lookup_attribute_data_1[static_cast<unsigned char>(ch)];
+					// Hack our way round incomplete rapidxml support for UTF-16.  This compiles and works only if Ch is WCHAR.
+					return (ch == L'\0' || ch == L'\'') ? 0 : 1;
                 if (Quote == Ch('\"'))
-                    return internal::lookup_tables<0>::lookup_attribute_data_2[static_cast<unsigned char>(ch)];
+                    //return internal::lookup_tables<0>::lookup_attribute_data_2[static_cast<unsigned char>(ch)];
+					// Hack our way round incomplete rapidxml support for UTF-16.  This compiles and works only if Ch is WCHAR.
+					return (ch == L'\0' || ch == L'\"') ? 0 : 1;
                 return 0;       // Should never be executed, to avoid warnings on Comeau
             }
         };
@@ -1499,9 +1544,13 @@ namespace rapidxml
             static unsigned char test(Ch ch)
             {
                 if (Quote == Ch('\''))
-                    return internal::lookup_tables<0>::lookup_attribute_data_1_pure[static_cast<unsigned char>(ch)];
+                    //return internal::lookup_tables<0>::lookup_attribute_data_1_pure[static_cast<unsigned char>(ch)];
+					// Hack our way round incomplete rapidxml support for UTF-16.  This compiles and works only if Ch is WCHAR.
+					return (ch == L'\0' || ch == L'\'' || ch== L'&') ? 0 : 1;
                 if (Quote == Ch('\"'))
-                    return internal::lookup_tables<0>::lookup_attribute_data_2_pure[static_cast<unsigned char>(ch)];
+                    //return internal::lookup_tables<0>::lookup_attribute_data_2_pure[static_cast<unsigned char>(ch)];
+					// Hack our way round incomplete rapidxml support for UTF-16.  This compiles and works only if Ch is WCHAR.
+					return (ch == L'\0' || ch == L'\"' || ch== L'&') ? 0 : 1;
                 return 0;       // Should never be executed, to avoid warnings on Comeau
             }
         };
