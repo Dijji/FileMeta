@@ -13,10 +13,10 @@ Global
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{D2E040E9-9E1B-468D-8476-D35CC7F1E944}.Debug|x64.ActiveCfg = Debug|x64
 		{D2E040E9-9E1B-468D-8476-D35CC7F1E944}.Debug|x64.Build.0 = Debug|x64
-		{D2E040E9-9E1B-468D-8476-D35CC7F1E944}.Debug|x86.ActiveCfg = Debug|x86
-		{D2E040E9-9E1B-468D-8476-D35CC7F1E944}.Debug|x86.Build.0 = Debug|x86
-		{D2E040E9-9E1B-468D-8476-D35CC7F1E944}.Release|x64.ActiveCfg = Release|x64
-		{D2E040E9-9E1B-468D-8476-D35CC7F1E944}.Release|x64.Build.0 = Release|x64
+		{D2E040E9-9E1B-468D-8476-D35CC7F1E944}.Debug|x86.ActiveCfg = Debug|x64
+		{D2E040E9-9E1B-468D-8476-D35CC7F1E944}.Debug|x86.Build.0 = Debug|x64
+		{D2E040E9-9E1B-468D-8476-D35CC7F1E944}.Release|x64.ActiveCfg = Release|x86
+		{D2E040E9-9E1B-468D-8476-D35CC7F1E944}.Release|x64.Build.0 = Release|x86
 		{D2E040E9-9E1B-468D-8476-D35CC7F1E944}.Release|x86.ActiveCfg = Release|x86
 		{D2E040E9-9E1B-468D-8476-D35CC7F1E944}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
