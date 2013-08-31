@@ -496,16 +496,17 @@ namespace TestDriver
             return builder.ToString();
         }
 
-        static string nonLatin = "할말있어Приветствия";
+        static string special = "할말있어&<>'\"АаБбВвГгДдЕеЁёЖжЗзИиЙйКкЛлМмНнОоПпРрСсТтУуФфХхЦцЧчШшЩщЪъЫыЬьЭэЮюЯя";
+        
 
         private char RandomChar()
         {
-            int c = random.Next(36);
+            int c = random.Next(26 + special.Length);
             if (c < 26)
                 // mixed case Latin
                 return Convert.ToChar(c + 65 + random.Next(2) * 32);
             else
-                return nonLatin[c - 26];
+                return special[c - 26];
         }
     }
 }
