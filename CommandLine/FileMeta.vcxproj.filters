@@ -1,0 +1,128 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="tclap">
+      <UniqueIdentifier>{2fba05bc-ef8d-4bff-8106-71c26676f72c}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="stdafx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="tclap\Arg.h">
+      <Filter>tclap</Filter>
+    </ClInclude>
+    <ClInclude Include="tclap\IgnoreRestVisitor.h">
+      <Filter>tclap</Filter>
+    </ClInclude>
+    <ClInclude Include="tclap\ArgException.h">
+      <Filter>tclap</Filter>
+    </ClInclude>
+    <ClInclude Include="tclap\ArgTraits.h">
+      <Filter>tclap</Filter>
+    </ClInclude>
+    <ClInclude Include="tclap\CmdLine.h">
+      <Filter>tclap</Filter>
+    </ClInclude>
+    <ClInclude Include="tclap\CmdLineInterface.h">
+      <Filter>tclap</Filter>
+    </ClInclude>
+    <ClInclude Include="tclap\CmdLineOutput.h">
+      <Filter>tclap</Filter>
+    </ClInclude>
+    <ClInclude Include="tclap\Constraint.h">
+      <Filter>tclap</Filter>
+    </ClInclude>
+    <ClInclude Include="tclap\DocBookOutput.h">
+      <Filter>tclap</Filter>
+    </ClInclude>
+    <ClInclude Include="tclap\HelpVisitor.h">
+      <Filter>tclap</Filter>
+    </ClInclude>
+    <ClInclude Include="tclap\MultiArg.h">
+      <Filter>tclap</Filter>
+    </ClInclude>
+    <ClInclude Include="tclap\MultiSwitchArg.h">
+      <Filter>tclap</Filter>
+    </ClInclude>
+    <ClInclude Include="tclap\OptionalUnlabeledTracker.h">
+      <Filter>tclap</Filter>
+    </ClInclude>
+    <ClInclude Include="tclap\StandardTraits.h">
+      <Filter>tclap</Filter>
+    </ClInclude>
+    <ClInclude Include="tclap\StdOutput.h">
+      <Filter>tclap</Filter>
+    </ClInclude>
+    <ClInclude Include="tclap\SwitchArg.h">
+      <Filter>tclap</Filter>
+    </ClInclude>
+    <ClInclude Include="tclap\UnlabeledMultiArg.h">
+      <Filter>tclap</Filter>
+    </ClInclude>
+    <ClInclude Include="tclap\UnlabeledValueArg.h">
+      <Filter>tclap</Filter>
+    </ClInclude>
+    <ClInclude Include="tclap\ValueArg.h">
+      <Filter>tclap</Filter>
+    </ClInclude>
+    <ClInclude Include="tclap\ValuesConstraint.h">
+      <Filter>tclap</Filter>
+    </ClInclude>
+    <ClInclude Include="tclap\VersionVisitor.h">
+      <Filter>tclap</Filter>
+    </ClInclude>
+    <ClInclude Include="tclap\Visitor.h">
+      <Filter>tclap</Filter>
+    </ClInclude>
+    <ClInclude Include="tclap\XorHandler.h">
+      <Filter>tclap</Filter>
+    </ClInclude>
+    <ClInclude Include="tclap\ZshCompletionOutput.h">
+      <Filter>tclap</Filter>
+    </ClInclude>
+    <ClInclude Include="rapidxml.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rapidxml_iterators.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rapidxml_print.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rapidxml_utils.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Resource Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FileMeta.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="FileMeta.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+</Project>
