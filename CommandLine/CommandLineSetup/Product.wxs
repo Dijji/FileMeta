@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?define ParentProductName = "File Metadata" ?>
+<?define ProductName = "File Metadata Command Line Utility" ?>
+<?define ProductVersion = "0.1" ?>
+
+<?if $(var.Platform) = x64 ?>
+<?define ProductDisplayName = "$(var.ProductName) 64-bit" ?>
+<?define ProductId = "1C645265-D2B1-4D8D-9B68-9A03F756FBA4" ?>
+<?define ProductUpgradeCode = "F8A5E398-EC91-45B2-A5E0-EC646ADC3B83" ?>
+<?define Win64 = "yes" ?>
+<?define PlatformProgramFilesFolder = "ProgramFiles64Folder" ?>
+<?define PlatformSystemFilesFolder = "SystemFiles64Folder" ?>
+<?define CRuntime = "Microsoft_VC100_CRT_x64.msm" ?>
+<?else ?>
+<?define ProductDisplayName = "$(var.ProductName) 32-bit" ?>
+<?define ProductId = "219DFAE2-625D-450E-927F-1126A51ED794" ?>
+<?define ProductUpgradeCode = "6C257046-EBC7-4045-A4CA-08AE47FE2BD0" ?>
+<?define Win64 = "no" ?>
+<?define PlatformProgramFilesFolder = "ProgramFilesFolder" ?>
+<?define PlatformSystemFilesFolder = "SystemFilesFolder" ?>
+<?define CRuntime = "Microsoft_VC100_CRT_x86.msm" ?>
+<?endif ?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="$(var.ProductId)" Name="$(var.ProductDisplayName) (v$(var.ProductVersion))"
+           Language="1033" Version="0.1.0.0" Manufacturer="Dijji" UpgradeCode="$(var.ProductUpgradeCode)">
+    <Package InstallerVersion="400" Compressed="yes" InstallScope="perMachine" />
+    <Condition Message="[ProductName] is for Windows Vista, Windows Server 2008, or higher.">
+      <![CDATA[Installed OR (VersionNT >= 600)]]>
+    </Condition>
+    <Condition Message="You need to be an administrator to install [ProductName]">
+      Privileged
+    </Condition>
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+    <UIRef Id="WixUI_Minimal" />
+    <WixVariable Id="WixUILicenseRtf" Value="Ms-PL.rtf" />
+
+    <Feature Id="PF_CommandLine" Title="File Metadata Command Line Utility" Level="1" Absent="disallow">
+      <ComponentRef Id="COMP_CommandLine" />
+      <MergeRef Id="CRT" />
+    </Feature>
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="$(var.PlatformProgramFilesFolder)">
+        <Directory Id="INSTALLFOLDER" Name="$(var.ParentProductName)">
+          <!-- for future localization 
+          <Directory Id="enUSResources" Name="en-US"/>
+          -->
+        </Directory>
+      </Directory>
+      <Directory Id="$(var.PlatformSystemFilesFolder)"/>
+      <!--Tweak the path to the C++ runtime as required in your dev environment. Deploys only release version of runtime, of course-->
+      <Merge Id="CRT" Language="0" SourceFile="C:\Program Files (x86)\Common Files\Merge Modules\$(var.CRuntime)" DiskId="1" />
+    </Directory>
+
+    <Component Id="COMP_CommandLine" Win64="$(var.Win64)" Directory="INSTALLFOLDER">
+      <File Id="FILE_CommandLine" KeyPath="yes" Source="$(var.CommandLine.TargetPath)"/>
+    </Component>
+  </Product>
+</Wix>
