@@ -6,6 +6,12 @@ SETLOCAL
 SET _filemeta="FileMeta.exe"
 ::SET _filemeta="C:\Program Files (x86)\File Metadata\FileMeta.exe"
 
+ECHO Setting up test files...
+type NUL > allprops.txt
+type NUL > fewprops.txt
+CALL %_filemeta% -i allprops.txt > nul || goto error
+CALL %_filemeta% -i fewprops.txt > nul || goto error
+
 ECHO Test 1: Export 600 properties, import onto new file, export again and compare
 SET Test=Test1
 CALL %_filemeta% -e -x=props.xml allprops.txt > nul || goto error
@@ -46,15 +52,15 @@ SET Test=Test4
 md temp
 type NUL > temp.txt
 CALL %_filemeta% -e -x=temp\props.xml fewprops.txt > nul || goto error
-CALL %_filemeta% -e fewprops.txt > nul || goto error
 CALL %_filemeta% -i -x=temp\props.xml temp.txt > nul || goto error
-fc /b temp\props.xml fewprops.txt.metadata.xml > nul || goto error
+CALL %_filemeta% -e -x=props2.xml temp.txt > nul || goto error
+fc /b temp\props.xml props2.xml > nul || goto error
 CALL %_filemeta% -e -f=temp fewprops.txt > nul || goto error
 ren temp\fewprops.txt.metadata.xml temp.txt.metadata.xml > nul || goto error
 CALL %_filemeta% -i -f=temp temp.txt > nul || goto error
 fc /b temp\props.xml temp\temp.txt.metadata.xml > nul || goto error
 del temp.txt
-del fewprops.txt.metadata.xml
+del props2.xml
 del /q temp\*.*
 rd temp
 ECHO %Test% passed
@@ -68,8 +74,9 @@ FOR /f %%G IN ('dir /b *.txt') DO (
   CALL %_filemeta% -e %%G > nul || goto error )
 FOR /f %%G IN ('dir /b *.xml') DO (
   fc /b %%G temp\%%G > nul || goto error )
-del /q *.xml
 del /q temp\*.*
+del temp.txt
+del temp.txt.metadata.xml
 rd temp
 ECHO %Test% passed
 
@@ -85,9 +92,13 @@ IF %size% LEQ 32 goto error
 call :filesize after.xml
 IF %size% GTR 32 goto error
 del temp.txt
-del /q *.xml
+del before.xml
+del after.xml
 ECHO %Test% passed
 
+:passed
+del allprops.txt
+del fewprops.txt
 ECHO All tests completed successfully
 goto :eof
 
