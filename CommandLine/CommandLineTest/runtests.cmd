@@ -68,16 +68,18 @@ ECHO %Test% passed
 ECHO Test5: Test wildcards against FOR loops
 SET Test=Test5
 md temp
+md temp2
 type NUL > temp.txt
 CALL %_filemeta% -e -f=temp *.txt > nul || goto error
 FOR /f %%G IN ('dir /b *.txt') DO (
-  CALL %_filemeta% -e %%G > nul || goto error )
-FOR /f %%G IN ('dir /b *.xml') DO (
-  fc /b %%G temp\%%G > nul || goto error )
+  CALL %_filemeta% -e -f=temp2 %%G > nul || goto error )
+FOR /f %%G IN ('dir /b temp\*.xml') DO (
+  fc /b temp\%%G temp2\%%G > nul || goto error )
 del /q temp\*.*
+del /q temp2\*.*
 del temp.txt
-del temp.txt.metadata.xml
 rd temp
+rd temp2
 ECHO %Test% passed
 
 ECHO Test6: Test delete metadata
