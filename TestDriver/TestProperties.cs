@@ -51,7 +51,8 @@ namespace TestDriver
                     propDesc.CanonicalName == "System.DuiControlResource" ||
                     propDesc.CanonicalName == "System.OfflineFiles.CreatedOffline" ||
                     propDesc.CanonicalName == "System.PropList.XPDetailsPanel" ||
-                    propDesc.CanonicalName == "System.SDID")
+                    propDesc.CanonicalName == "System.SDID" ||
+                    propDesc.CanonicalName == "Windows.Registry.Type")
                    continue;
 
                 // Use API Code Pack to set the value, except for strings, because the Code Pack blows when setting strings of length 1 !!
