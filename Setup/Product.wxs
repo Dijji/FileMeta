@@ -6,7 +6,7 @@ Also thanks to Alek Davis for the 32/64-bit strategy: http://alekdavis.blogspot.
 -->
 
 <?define ProductName = "File Metadata" ?>
-<?define ProductVersion = "1.1" ?>
+<?define ProductVersion = "1.2" ?>
 
 <?if $(var.Platform) = x64 ?>
 <?define ProductDisplayName = "$(var.ProductName) 64-bit" ?>
@@ -32,7 +32,7 @@ Also thanks to Alek Davis for the 32/64-bit strategy: http://alekdavis.blogspot.
 
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
 	<Product Id="$(var.ProductId)" Name="$(var.ProductDisplayName) (v$(var.ProductVersion))"
-           Language="1033" Version="1.1.0.0" Manufacturer="Dijji" UpgradeCode="$(var.ProductUpgradeCode)">
+           Language="1033" Version="1.2.0.0" Manufacturer="Dijji" UpgradeCode="$(var.ProductUpgradeCode)">
 		<Package InstallerVersion="400" Compressed="yes" InstallScope="perMachine" />
     <Condition Message="[ProductName] is for Windows Vista, Windows Server 2008, or higher.">
       <![CDATA[Installed OR (VersionNT >= 600)]]>
@@ -58,6 +58,9 @@ Also thanks to Alek Davis for the 32/64-bit strategy: http://alekdavis.blogspot.
       </Feature>
       <Feature Id="PF_ContextMenuHandler" Title="Context Menu Handler" Level="1">
         <ComponentRef Id="COMP_ContextMenuHandler" />
+      </Feature>
+      <Feature Id="PF_CommandLine" Title="File Metadata Command Line Utility" Level="1">
+        <ComponentRef Id="COMP_CommandLine" />
       </Feature>
     </Feature>
 
@@ -94,6 +97,10 @@ Also thanks to Alek Davis for the 32/64-bit strategy: http://alekdavis.blogspot.
       <File Id="FILE_ContextMenuHandler" KeyPath="yes" Source="$(var.FileMetaContextMenuHandler.TargetPath)">
         <Class Id="$(var.PlatformContextMenuCLSID)" Context="InprocServer32" Description="File Meta Stream Context Menu Handler" ThreadingModel="both" />
       </File>
+    </Component>
+
+    <Component Id="COMP_CommandLine" Win64="$(var.Win64)" Directory="INSTALLFOLDER" Guid="5F1DE994-4C5B-47D1-99B4-DDDE4E07FCED">
+      <File Id="FILE_CommandLine" KeyPath="yes" Source="$(var.CommandLine.TargetPath)"/>
     </Component>
 
     <ComponentGroup Id="COMP_AssociationManager">
