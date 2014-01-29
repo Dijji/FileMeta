@@ -72,6 +72,7 @@ namespace TestDriver
             Tests.Add(new RoundTrip2());
             Tests.Add(new RoundTrip3());
             Tests.Add(new RoundTrip4());
+            Tests.Add(new RoundTrip5());
             Tests.Add(new ExportImport1());
             Tests.Add(new ExportImport2());
             Tests.Add(new TestProperties1());

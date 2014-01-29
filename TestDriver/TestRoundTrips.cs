@@ -177,4 +177,74 @@ namespace TestDriver
             return result1 == cval1 && result2[0] == cval2[0] && result2[1] == cval2[1];
         }
     }
+
+    // Test read/write patterns using the Property Handler
+    public class RoundTrip5 : Test
+    {
+        public override string Name { get { return "Read/write patterns using the Property Handler"; } }
+
+        public override bool RunBody(State state)
+        {
+            RequirePropertyHandlerRegistered();
+            RequireTxtProperties();
+
+            string propertyName1 = "System.Comment";
+            const string cval1 = "comment";
+            const string cval1a = "commenta";
+            Guid format1 = new Guid("F29F85E0-4FF9-1068-AB91-08002B27B3D9");
+            int id1 = 6;
+
+            string propertyName2 = "System.Title";
+            const string cval2 = "title";
+            const string cval2a = "titlea";
+            Guid format2 = new Guid("F29F85E0-4FF9-1068-AB91-08002B27B3D9");
+            int id2 = 2;
+
+            //Create a temp file to put metadata on
+            string fileName = CreateFreshFile(1);
+
+            // Use API Code Pack to set the values
+            IShellProperty prop1 = ShellObject.FromParsingName(fileName).Properties.GetProperty(propertyName1);
+            (prop1 as ShellProperty<string>).Value = cval1;
+            IShellProperty prop2 = ShellObject.FromParsingName(fileName).Properties.GetProperty(propertyName2);
+            (prop2 as ShellProperty<string>).Value = cval2;
+
+            var handler = new CPropertyHandler();
+            handler.Initialize(fileName, 0);
+
+            // Read the values with the Property Handler
+            PropVariant getvalue1 = new PropVariant();
+            PropVariant getvalue2 = new PropVariant();
+            handler.GetValue(new TestDriverCodePack.PropertyKey(format1, id1), getvalue1);
+            handler.GetValue(new TestDriverCodePack.PropertyKey(format2, id2), getvalue2);
+            string result1 = (string)getvalue1.Value;
+            string result2 = (string)getvalue2.Value;
+
+            if (result1 != cval1 || result2 != cval2)
+                return false;
+
+            // Set the values with the Property Handler
+            PropVariant value1 = new PropVariant(cval1a);
+            PropVariant value2 = new PropVariant(cval2a);
+            // System.Comment
+            handler.SetValue(new TestDriverCodePack.PropertyKey(format1, id1), value1);
+            // System.Category
+            handler.SetValue(new TestDriverCodePack.PropertyKey(format2, id2), value2);
+            handler.Commit();
+
+            // Read the updated values with the Property Handler
+            getvalue1 = new PropVariant();
+            getvalue2 = new PropVariant();
+            handler.GetValue(new TestDriverCodePack.PropertyKey(format1, id1), getvalue1);
+            handler.GetValue(new TestDriverCodePack.PropertyKey(format2, id2), getvalue2);
+            result1 = (string)getvalue1.Value;
+            result2 = (string)getvalue2.Value;
+
+            Marshal.ReleaseComObject(handler);  // preempt GC for CCW
+
+            File.Delete(fileName);  // only works if all have let go of the file
+
+            return (result1 == cval1a && result2 == cval2a);
+        }
+    }
 }
