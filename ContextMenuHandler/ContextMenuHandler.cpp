@@ -53,6 +53,7 @@ public:
 		WCHAR    lpszFormat[MAX_PATH];
 		va_list  fmtList;
 
+		_hr = hr;
 		AccessResourceString(uResourceId, lpszFormat, MAX_PATH);
 		va_start( fmtList, uResourceId );
 		vswprintf_s( _pszError, MAX_PATH, lpszFormat, fmtList );
@@ -63,7 +64,7 @@ public:
 	WCHAR   _pszError[MAX_PATH];
 };
 
-void ConvertVarTypeToString( VARTYPE vt, WCHAR *pwszType, ULONG cchType );
+void ConvertVarTypeToString( VARTYPE vt, WCHAR *pwszType, size_t cchType );
 std::vector<std::wstring> &wsplit(const std::wstring &s, WCHAR delim, std::vector<std::wstring> &elems);
 std::vector<std::wstring> wsplit(const std::wstring &s, WCHAR delim);
 
@@ -112,9 +113,9 @@ public:
 
 
 private:
-	bool CContextMenuHandler::MetadataPresent();
+	HRESULT CContextMenuHandler::MetadataPresent();
 	void CContextMenuHandler::ExportMetadata (xml_document<WCHAR> *doc);
-	void CContextMenuHandler::ExportPropertySetData (xml_document<WCHAR> *doc, xml_node<WCHAR> *root, PROPERTYKEY* keys, long& index, CComPtr<IPropertyStore> pStore);
+	void CContextMenuHandler::ExportPropertySetData (xml_document<WCHAR> *doc, xml_node<WCHAR> *root, PROPERTYKEY* keys, DWORD& index, CComPtr<IPropertyStore> pStore);
 	void CContextMenuHandler::ImportMetadata (xml_document<WCHAR> *doc);
 	void CContextMenuHandler::ImportPropertySetData (xml_document<WCHAR> *doc, xml_node<WCHAR> *stor, FMTID fmtid, CComPtr<IPropertyStore> pStore);
 	void CContextMenuHandler::DeleteMetadata ();
@@ -250,8 +251,9 @@ IFACEMETHODIMP CContextMenuHandler::QueryContextMenu(
 	// Delete
 	AccessResourceString(IDS_DELETE, buffer, MAX_PATH);
 	uMenuFlags = MF_BYPOSITION;
-	if (!MetadataPresent())
+	if (S_OK != MetadataPresent())
 		uMenuFlags |= MF_GRAYED;
+
     if (!InsertMenu ( hSubmenu, 2, uMenuFlags, uID++, buffer) )
 		return HRESULT_FROM_WIN32(GetLastError());
 
@@ -469,7 +471,7 @@ IFACEMETHODIMP CContextMenuHandler::GetCommandString(UINT_PTR idCommand,
     return hr;
 }
 
-bool CContextMenuHandler::MetadataPresent()
+HRESULT CContextMenuHandler::MetadataPresent()
 {
     HRESULT hr = E_UNEXPECTED;
 	bool present = false;
@@ -481,21 +483,26 @@ bool CContextMenuHandler::MetadataPresent()
 
 		hr = (v_pfnStgOpenStorageEx)(m_szSelectedFile, STGM_READ | STGM_SHARE_EXCLUSIVE, STGFMT_FILE, 0, NULL, 0, 
 				IID_IPropertySetStorage, (void**)&pPropSetStg);
-		if( FAILED(hr) ) 
-			throw CPHException(hr, IDS_E_IPSS_1, hr);
+	
+		if (SUCCEEDED(hr))
+		{
+			// We use IPropertyStore for simplicity
+			hr = PSCreatePropertyStoreFromPropertySetStorage(pPropSetStg, STGM_READ, IID_IPropertyStore, (void **)&pStore);
+			pPropSetStg.Release();
 
-		// We use IPropertyStore for simplicity
-		hr = PSCreatePropertyStoreFromPropertySetStorage(pPropSetStg, STGM_READWRITE, IID_IPropertyStore, (void **)&pStore);
-		pPropSetStg.Release();
-		if( FAILED(hr) ) 
-			throw CPHException(hr, IDS_E_PSCREATE_1, hr);
-
-		DWORD cProps;
-		pStore->GetCount(&cProps);
-		present = cProps > 0;
+			if (SUCCEEDED(hr))
+			{
+				DWORD cProps;
+				hr = pStore->GetCount(&cProps);
+				present = cProps > 0;
+			}
+		}
 	}
 
-	return present;
+	if (SUCCEEDED(hr))
+		return present ? S_OK : S_FALSE;
+	else
+		return hr;
 }
 
 inline bool operator<(const PROPERTYKEY& a, const PROPERTYKEY& b)
@@ -537,7 +544,6 @@ void CContextMenuHandler::ExportMetadata (xml_document<WCHAR> *doc)
 				throw CPHException(hr, IDS_E_PSCREATE_1, hr);
 
 			DWORD cProps;
-			PROPVARIANT propvar;
 			hr = pStore->GetCount(&cProps);
 			if( FAILED(hr) ) 
 				throw CPHException(hr, IDS_E_IPS_GETCOUNT_1, hr);
@@ -556,7 +562,7 @@ void CContextMenuHandler::ExportMetadata (xml_document<WCHAR> *doc)
 			sort(keys, &keys[cProps]);
 
 			// Loop through all the properties
-			long index = 0;
+			DWORD index = 0;
 
 			while( index < cProps)
 			{
@@ -575,12 +581,11 @@ void CContextMenuHandler::ExportMetadata (xml_document<WCHAR> *doc)
 }
 
 // throws CPHException on error
-void CContextMenuHandler::ExportPropertySetData (xml_document<WCHAR> *doc, xml_node<WCHAR> *root, PROPERTYKEY* keys, long& index, CComPtr<IPropertyStore> pStore)
+void CContextMenuHandler::ExportPropertySetData (xml_document<WCHAR> *doc, xml_node<WCHAR> *root, PROPERTYKEY* keys, DWORD& index, CComPtr<IPropertyStore> pStore)
 {
     HRESULT hr = E_UNEXPECTED;
 
     PROPVARIANT propvar;
-    PROPSPEC propspec;
 	GUID currFmtid = keys[index].fmtid;
 
 	PropVariantInit( &propvar );
@@ -804,7 +809,7 @@ void CContextMenuHandler::ImportPropertySetData (xml_document<WCHAR> *doc, xml_n
 						ps[i] = ss[i].c_str();
 				}
 
-				hr = InitPropVariantFromStringVector(ps, ss.size(), &propvarString);
+				hr = InitPropVariantFromStringVector(ps, (ULONG)ss.size(), &propvarString);
 				delete [] ps;
 			}
 			else
@@ -947,7 +952,7 @@ std::vector<std::wstring> wsplit(const std::wstring &s, WCHAR delim) {
 //+-------------------------------------------------------------------
 
 void
-ConvertVarTypeToString( VARTYPE vt, WCHAR *pwszType, ULONG cchType )
+ConvertVarTypeToString( VARTYPE vt, WCHAR *pwszType, size_t cchType )
 {
     const WCHAR *pwszModifier;
 
