@@ -13,7 +13,7 @@ static const WCHAR* PropertyHandlerDescription = L"File Metadata Property Handle
 class CPropertyHandler : public IPropertyStore, public IInitializeWithFile
 {
 public:
-    CPropertyHandler() : _cRef(1), _pStore(NULL), _fReadOnly(FALSE)
+    CPropertyHandler() : _cRef(1), _pStore(NULL), _bReadWrite(FALSE)
     {
         DllAddRef();
     }
@@ -62,10 +62,12 @@ private:
         SafeRelease(&_pStore);
         DllRelease();
     }
+	HRESULT OpenStore(BOOL bReadWrite);
 
     long _cRef;
 
-	BOOL		            _fReadOnly;     // Whether storage set currently open read only
+	WCHAR					_pszFilePath[MAX_PATH];
+	BOOL		            _bReadWrite;     // Whether storage set currently open read write
 	IPropertyStore *		_pStore;		// Wrapper over set of storages
 };
 
@@ -84,66 +86,85 @@ HRESULT CPropertyHandler_CreateInstance(REFIID riid, void **ppv)
 HRESULT CPropertyHandler::GetCount(DWORD *pcProps)
 {
     *pcProps = 0;
-    return _pStore ? _pStore->GetCount(pcProps) : E_UNEXPECTED;
+	HRESULT hr = OpenStore(FALSE);
+    return SUCCEEDED(hr) ? _pStore->GetCount(pcProps) : hr;
 }
 
 HRESULT CPropertyHandler::GetAt(DWORD iProp, PROPERTYKEY *pkey)
 {
     *pkey = PKEY_Null;
-    return _pStore ? _pStore->GetAt(iProp, pkey) : E_UNEXPECTED;
+	HRESULT hr = OpenStore(FALSE);
+    return SUCCEEDED(hr) ? _pStore->GetAt(iProp, pkey) : hr;
 }
 
 HRESULT CPropertyHandler::GetValue(REFPROPERTYKEY key, PROPVARIANT *pPropVar)
 {
     PropVariantInit(pPropVar);
-    return _pStore ? _pStore->GetValue(key, pPropVar) : E_UNEXPECTED;
+	HRESULT hr = OpenStore(FALSE);
+    return SUCCEEDED(hr) ? _pStore->GetValue(key, pPropVar) : hr;
 }
 
 // SetValue just updates the property store's value cache
 HRESULT CPropertyHandler::SetValue(REFPROPERTYKEY key, REFPROPVARIANT propVar)
 {
-    return _pStore ? _pStore->SetValue(key, propVar) : E_UNEXPECTED;
+	HRESULT hr = OpenStore(TRUE);
+    return SUCCEEDED(hr) ? _pStore->SetValue(key, propVar) : hr;
 }
 
 // Commit writes updates out to thw alternate stream
 HRESULT CPropertyHandler::Commit()
 {
-    return _pStore ? _pStore->Commit() : E_UNEXPECTED;
+	HRESULT hr = OpenStore(TRUE);
+    return SUCCEEDED(hr) ? _pStore->Commit() : hr;
 }
 
-HRESULT CPropertyHandler::Initialize(LPCWSTR pszFilePath, DWORD grfMode)
+HRESULT CPropertyHandler::OpenStore(BOOL bReadWrite)
 {
     HRESULT hr = E_UNEXPECTED;
 
-	if (!v_pfnStgOpenStorageEx)
+	if (_pStore)
 	{
-		BOOL fRunningOnNT = ((GetVersion() & 0x80000000) != 0x80000000);
-		v_pfnStgOpenStorageEx = ((fRunningOnNT) ? (PFN_STGOPENSTGEX)GetProcAddress(GetModuleHandle(L"OLE32"), "StgOpenStorageEx") : NULL);
+		// If open and read/write, or only read wanted, we're good
+		if (_bReadWrite || !bReadWrite)
+			return S_OK;
+		// Must be open read but read/write wanted - close ready to re-open
+		else 
+			SafeRelease(&_pStore);
 	}
 
 	if (v_pfnStgOpenStorageEx)
 	{
 		IPropertySetStorage* pPropSetStg = NULL;
+		DWORD dwReadWrite = bReadWrite ? STGM_READWRITE : STGM_READ;
 
-		// On Win2K+ we can get the NTFS version of OLE properties (saved in alt stream)...
-		hr = (v_pfnStgOpenStorageEx)(pszFilePath, STGM_READWRITE | STGM_SHARE_EXCLUSIVE, STGFMT_FILE, 0, NULL, 0, 
+		hr = (v_pfnStgOpenStorageEx)(_pszFilePath, dwReadWrite | STGM_SHARE_EXCLUSIVE, STGFMT_FILE, 0, NULL, 0, 
 				IID_IPropertySetStorage, (void**)&pPropSetStg);
-
-		// If we failed to gain write access, try for just read access
-		if ((hr == STG_E_ACCESSDENIED) && (!_fReadOnly))
-		{
-			_fReadOnly = TRUE;  // we don't do anything with this, but we could use it when writing, rather than just allowing failures
-			hr = (v_pfnStgOpenStorageEx)(pszFilePath, (STGM_READ | STGM_SHARE_EXCLUSIVE), STGFMT_FILE,
-				0, NULL, 0, IID_IPropertySetStorage, (void**)&pPropSetStg);
-		}
 
 		if (SUCCEEDED(hr))
 			// To make IPropertyStore work for Write, it is necessary to use STGM_READWRITE, which the MS documentation says
 			// explicitly will not work.  The recommended STGM_READ fails with E_ACCESSDENIED on Write and Commit, which
 			// is what you would expect. The only bug appears to be in the documentation.
-			hr = PSCreatePropertyStoreFromPropertySetStorage(pPropSetStg, STGM_READWRITE, IID_IPropertyStore, (void **)&_pStore);
+			hr = PSCreatePropertyStoreFromPropertySetStorage(pPropSetStg, dwReadWrite, IID_IPropertyStore, (void **)&_pStore);
 
 		SafeRelease(&pPropSetStg);
+
+		if (SUCCEEDED(hr))
+			_bReadWrite = bReadWrite;
+	}
+
+	return hr;
+}
+
+HRESULT CPropertyHandler::Initialize(LPCWSTR pszFilePath, DWORD grfMode)
+{
+    HRESULT hr = S_OK;
+
+	wcscpy_s(_pszFilePath, MAX_PATH, pszFilePath);
+
+	if (!v_pfnStgOpenStorageEx)
+	{
+		BOOL fRunningOnNT = ((GetVersion() & 0x80000000) != 0x80000000);
+		v_pfnStgOpenStorageEx = ((fRunningOnNT) ? (PFN_STGOPENSTGEX)GetProcAddress(GetModuleHandle(L"OLE32"), "StgOpenStorageEx") : NULL);
 	}
 
     return hr;
