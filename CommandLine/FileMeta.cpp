@@ -42,18 +42,19 @@ int AccessResourceString(UINT uId, LPWSTR lpBuffer, int nBufferMax)
 class CPHException 
 {
 public:
-	CPHException (HRESULT hr, UINT uResourceId, ...)
+	CPHException (int err, UINT uResourceId, ...)
 	{
 		WCHAR    lpszFormat[MAX_PATH];
 		va_list  fmtList;
 
+		_err = err;
 		AccessResourceString(uResourceId, lpszFormat, MAX_PATH);
 		va_start( fmtList, uResourceId );
 		vswprintf_s( _pszError, MAX_PATH, lpszFormat, fmtList );
 		va_end( fmtList );
 	}
 
-	HRESULT _hr;
+	int		_err;
 	WCHAR   _pszError[MAX_PATH];
 };
 
@@ -198,7 +199,7 @@ int wmain(int argc, WCHAR* argv[])
 							fclose(pfile);
 						}
 						else
-							throw CPHException(E_FAIL, IDS_E_FILEOPEN_1, err);
+							throw CPHException(err, IDS_E_FILEOPEN_1, err);
 
 						wcout << L"Exported metadata to " << xmlFile << endl;
 					}
@@ -275,7 +276,7 @@ int wmain(int argc, WCHAR* argv[])
 							wmemcpy(content, e.where<WCHAR>(), size);
 							content[MAX_ERRLENGTH] = L'\0';  // ensure termination
 
-							CPHException cphe = CPHException(E_FAIL, IDS_E_XML_PARSE_ERROR_2, error, content);
+							CPHException cphe = CPHException(ERROR_XML_PARSE_ERROR, IDS_E_XML_PARSE_ERROR_2, error, content);
 							delete [] error;
 							throw cphe;
 						}
@@ -284,7 +285,7 @@ int wmain(int argc, WCHAR* argv[])
 						ImportMetadata(&doc, targetFile);
 					}
 					else
-						throw CPHException(E_FAIL, IDS_E_FILEOPEN_1, err);
+						throw CPHException(err, IDS_E_FILEOPEN_1, err);
 
 					wcout << L"Imported metadata to " << targetFile << L" from " << xmlFile <<  endl;
 				}
@@ -299,7 +300,7 @@ int wmain(int argc, WCHAR* argv[])
 	catch (CPHException &e)
 	{
 		wcerr << e._pszError << endl;
-		result = e._hr;
+		result = e._err;
 	}
 
 	if (prompt)
@@ -352,7 +353,7 @@ std::vector<std::wstring> wsplit(const std::wstring &s, WCHAR delim) {
 //+-------------------------------------------------------------------
 
 void
-ConvertVarTypeToString( VARTYPE vt, WCHAR *pwszType, ULONG cchType )
+ConvertVarTypeToString( VARTYPE vt, WCHAR *pwszType, size_t cchType )
 {
     const WCHAR *pwszModifier;
 
@@ -556,7 +557,7 @@ inline bool operator<(const PROPERTYKEY& a, const PROPERTYKEY& b)
 		return a.pid < b.pid;
 }
 
-void ExportPropertySetData (xml_document<WCHAR> *doc, xml_node<WCHAR> *root, PROPERTYKEY* keys, long& index, CComPtr<IPropertyStore> pStore);
+void ExportPropertySetData (xml_document<WCHAR> *doc, xml_node<WCHAR> *root, PROPERTYKEY* keys, DWORD& index, CComPtr<IPropertyStore> pStore);
 
 void ExportMetadata (xml_document<WCHAR> *doc, wstring targetFile)
 {
@@ -576,18 +577,17 @@ void ExportMetadata (xml_document<WCHAR> *doc, wstring targetFile)
 			hr = (v_pfnStgOpenStorageEx)(targetFile.c_str(), STGM_READ | STGM_SHARE_EXCLUSIVE, STGFMT_FILE, 0, NULL, 0, 
 					IID_IPropertySetStorage, (void**)&pPropSetStg);
 			if( FAILED(hr) ) 
-				throw CPHException(hr, IDS_E_IPSS_1, hr);
+				throw CPHException(ERROR_OPEN_FAILED, IDS_E_IPSS_1, hr);
 
 			hr = PSCreatePropertyStoreFromPropertySetStorage(pPropSetStg, STGM_READWRITE, IID_IPropertyStore, (void **)&pStore);
 			pPropSetStg.Release();
 			if( FAILED(hr) ) 
-				throw CPHException(hr, IDS_E_PSCREATE_1, hr);
+				throw CPHException(ERROR_OPEN_FAILED, IDS_E_PSCREATE_1, hr);
 
 			DWORD cProps;
-			PROPVARIANT propvar;
 			hr = pStore->GetCount(&cProps);
 			if( FAILED(hr) ) 
-				throw CPHException(hr, IDS_E_IPS_GETCOUNT_1, hr);
+				throw CPHException(ERROR_OPEN_FAILED, IDS_E_IPS_GETCOUNT_1, hr);
 
 			keys = new PROPERTYKEY[cProps];
 
@@ -595,7 +595,7 @@ void ExportMetadata (xml_document<WCHAR> *doc, wstring targetFile)
 			{
 				hr = pStore->GetAt(i, &keys[i]);
 				if( FAILED(hr) ) 
-					throw CPHException(hr, IDS_E_IPS_GETAT_1, hr);
+					throw CPHException(ERROR_UNKNOWN_PROPERTY, IDS_E_IPS_GETAT_1, hr);
 			}
 
 			// Sort keys into their property sets
@@ -603,7 +603,7 @@ void ExportMetadata (xml_document<WCHAR> *doc, wstring targetFile)
 			sort(keys, &keys[cProps]);
 
 			// Loop through all the properties
-			long index = 0;
+			DWORD index = 0;
 
 			while( index < cProps)
 			{
@@ -622,12 +622,11 @@ void ExportMetadata (xml_document<WCHAR> *doc, wstring targetFile)
 }
 
 // throws CPHException on error
-void ExportPropertySetData (xml_document<WCHAR> *doc, xml_node<WCHAR> *root, PROPERTYKEY* keys, long& index, CComPtr<IPropertyStore> pStore)
+void ExportPropertySetData (xml_document<WCHAR> *doc, xml_node<WCHAR> *root, PROPERTYKEY* keys, DWORD& index, CComPtr<IPropertyStore> pStore)
 {
     HRESULT hr = E_UNEXPECTED;
 
     PROPVARIANT propvar;
-    PROPSPEC propspec;
 	GUID currFmtid = keys[index].fmtid;
 
 	PropVariantInit( &propvar );
@@ -661,7 +660,7 @@ void ExportPropertySetData (xml_document<WCHAR> *doc, xml_node<WCHAR> *root, PRO
 			PropVariantInit( &propvar );
 			hr = pStore->GetValue(keys[index], &propvar);
 			if( FAILED(hr) ) 
-				throw CPHException(hr, IDS_E_IPS_GETVALUE_3, hr, keys[index].pid, pGuid);
+				throw CPHException(ERROR_UNKNOWN_PROPERTY, IDS_E_IPS_GETVALUE_3, hr, keys[index].pid, pGuid);
 
 			// Export the property value, type, and so on.
 			WCHAR* wszId = doc->allocate_string(NULL, 20);
@@ -711,7 +710,7 @@ void ExportPropertySetData (xml_document<WCHAR> *doc, xml_node<WCHAR> *root, PRO
 					prop->append_node(node);
 				}
 				else
-					throw CPHException(hr, IDS_E_PSFORMAT_3, hr, keys[index].pid, pGuid);
+					throw CPHException(ERROR_INVALID_FUNCTION, IDS_E_PSFORMAT_3, hr, keys[index].pid, pGuid);
 			}
 			else
 			{
@@ -727,7 +726,7 @@ void ExportPropertySetData (xml_document<WCHAR> *doc, xml_node<WCHAR> *root, PRO
 				}
 				PropVariantClear(&propvarString);
 				if (FAILED(hr))
-					throw CPHException(hr, IDS_E_PSFORMAT_3, hr, keys[index].pid, pGuid);
+					throw CPHException(ERROR_INVALID_FUNCTION, IDS_E_PSFORMAT_3, hr, keys[index].pid, pGuid);
 			}
         }
     }
@@ -758,33 +757,33 @@ void ImportMetadata (xml_document<WCHAR> *doc, wstring targetFile)
 		hr = (v_pfnStgOpenStorageEx)(targetFile.c_str(), STGM_READWRITE | STGM_SHARE_EXCLUSIVE, STGFMT_FILE, 0, NULL, 0, 
 				IID_IPropertySetStorage, (void**)&pPropSetStg);
 		if( FAILED(hr) ) 
-			throw CPHException(hr, IDS_E_IPSS_1, hr);
+			throw CPHException(ERROR_OPEN_FAILED, IDS_E_IPSS_1, hr);
 
 		// We use IPropertyStore for writing for simplicity
 		hr = PSCreatePropertyStoreFromPropertySetStorage(pPropSetStg, STGM_READWRITE, IID_IPropertyStore, (void **)&pStore);
 		pPropSetStg.Release();
 		if( FAILED(hr) ) 
-			throw CPHException(hr, IDS_E_PSCREATE_1, hr);
+			throw CPHException(ERROR_OPEN_FAILED, IDS_E_PSCREATE_1, hr);
 
 		xml_node<WCHAR>* root = doc->first_node();
 		if (wcscmp(root->name(), MetadataNodeName) != 0)
-			throw CPHException(E_UNEXPECTED, IDS_E_ROOT_1, root->name());
+			throw CPHException(ERROR_XML_PARSE_ERROR, IDS_E_ROOT_1, root->name());
 
 		// iterate over the storages
 		xml_node<WCHAR>* stor = root->first_node();
 		while (stor)
 		{
 			if (wcscmp(stor->name(), StorageNodeName) != 0)
-				throw CPHException(E_UNEXPECTED, IDS_E_STORAGE_1, stor->name());
+				throw CPHException(ERROR_XML_PARSE_ERROR, IDS_E_STORAGE_1, stor->name());
 
 			xml_attribute<WCHAR>* id = stor->first_attribute(FormatIDAttrName);
 			if (!id)
-				throw CPHException(E_UNEXPECTED, IDS_E_NOFORMATID);
+				throw CPHException(ERROR_XML_PARSE_ERROR, IDS_E_NOFORMATID);
 
 			FMTID fmtid;
 			hr = CLSIDFromString (id->value(), &fmtid);
 			if (FAILED(hr))
-				throw CPHException(E_UNEXPECTED, IDS_E_BADFORMATID_1, id->value());
+				throw CPHException(ERROR_XML_PARSE_ERROR, IDS_E_BADFORMATID_1, id->value());
 
 			ImportPropertySetData(doc, stor, fmtid, pStore);
 
@@ -804,22 +803,22 @@ void ImportPropertySetData (xml_document<WCHAR> *doc, xml_node<WCHAR> *stor, FMT
 	while (prop)
 	{
 		if (wcscmp(prop->name(), PropertyNodeName) != 0)
-			throw CPHException(E_UNEXPECTED, IDS_E_PROPERTY_1, prop->name());
+			throw CPHException(ERROR_XML_PARSE_ERROR, IDS_E_PROPERTY_1, prop->name());
 
 		// OK if this is missing
 		xml_attribute<WCHAR>* name = prop->first_attribute(NameAttrName);
 
 		xml_attribute<WCHAR>* id = prop->first_attribute(PropertyIdAttrName);
 		if (!id)
-			throw CPHException(E_UNEXPECTED, IDS_E_NOID);
+			throw CPHException(ERROR_XML_PARSE_ERROR, IDS_E_NOID);
 
 		xml_attribute<WCHAR>* idType = prop->first_attribute(TypeIdAttrName);
 		if (!idType)
-			throw CPHException(E_UNEXPECTED, IDS_E_NOTYPEID_1, name != NULL ? name->value(): id->value());
+			throw CPHException(ERROR_XML_PARSE_ERROR, IDS_E_NOTYPEID_1, name != NULL ? name->value(): id->value());
 
 		xml_node<WCHAR>* val = prop->first_node(ValueNodeName);
 		if (!val)
-			throw CPHException(E_UNEXPECTED, IDS_E_NOVALUE_1, name != NULL ? name->value(): id->value());
+			throw CPHException(ERROR_XML_PARSE_ERROR, IDS_E_NOVALUE_1, name != NULL ? name->value(): id->value());
 
 		WCHAR* stop;
 		VARTYPE vt = (VARTYPE) wcstol(idType->value(), &stop, 10);
@@ -853,7 +852,7 @@ void ImportPropertySetData (xml_document<WCHAR> *doc, xml_node<WCHAR> *stor, FMT
 						ps[i] = ss[i].c_str();
 				}
 
-				hr = InitPropVariantFromStringVector(ps, ss.size(), &propvarString);
+				hr = InitPropVariantFromStringVector(ps, (ULONG)ss.size(), &propvarString);
 				delete [] ps;
 			}
 			else
@@ -866,7 +865,7 @@ void ImportPropertySetData (xml_document<WCHAR> *doc, xml_node<WCHAR> *stor, FMT
 				{
 					hr = pStore->SetValue(key, propvarValue);
 					if (FAILED(hr))
-						throw CPHException(hr, IDS_E_IPS_SETVALUE_2, hr, name != NULL ? name->value(): id->value());
+						throw CPHException(ERROR_UNKNOWN_PROPERTY, IDS_E_IPS_SETVALUE_2, hr, name != NULL ? name->value(): id->value());
 
 					TRACEF(L"Set property with Name or Id %s to %s\n",  name != NULL ? name->value(): id->value(), val->value() );
 	
@@ -874,10 +873,10 @@ void ImportPropertySetData (xml_document<WCHAR> *doc, xml_node<WCHAR> *stor, FMT
 					PropVariantClear(&propvarValue);
 				}
 				else
-					throw CPHException(hr, IDS_E_VAR_COERCE_2, hr, name != NULL ? name->value(): id->value());
+					throw CPHException(ERROR_INVALID_FUNCTION, IDS_E_VAR_COERCE_2, hr, name != NULL ? name->value(): id->value());
 			}
 			else
-				throw CPHException(hr, IDS_E_VAR_INIT_2, hr, name != NULL ? name->value(): id->value());
+				throw CPHException(ERROR_INVALID_FUNCTION, IDS_E_VAR_INIT_2, hr, name != NULL ? name->value(): id->value());
 		}
 		catch (CPHException& e)
 		{
@@ -903,11 +902,11 @@ void DeleteMetadata (wstring targetFile)
 		hr = (v_pfnStgOpenStorageEx)(targetFile.c_str(), STGM_READWRITE | STGM_SHARE_EXCLUSIVE, STGFMT_FILE, 0, NULL, 0, 
 				IID_IPropertySetStorage, (void**)&pPropSetStg);
 		if( FAILED(hr) ) 
-			throw CPHException(hr, IDS_E_IPSS_1, hr);
+			throw CPHException(ERROR_OPEN_FAILED, IDS_E_IPSS_1, hr);
 
 		hr = pPropSetStg->Enum( &penum );
 		if( FAILED(hr) ) 
-			throw CPHException(hr, IDS_E_IPSS_ENUM_1, hr);
+			throw CPHException(ERROR_OPEN_FAILED, IDS_E_IPSS_ENUM_1, hr);
 
 		memset( &statpropsetstg, 0, sizeof(statpropsetstg) );
 	    hr = penum->Next( 1, &statpropsetstg, NULL );
@@ -921,7 +920,7 @@ void DeleteMetadata (wstring targetFile)
 			{
 				WCHAR pGuid[64];
 				StringFromGUID2( statpropsetstg.fmtid, pGuid, 64);		
-				throw CPHException(hr, IDS_E_IPSS_DELETE_2, hr, pGuid);
+				throw CPHException(ERROR_UNKNOWN_PROPERTY, IDS_E_IPSS_DELETE_2, hr, pGuid);
 			}
 
 			// Get the next property set in the enumeration.
@@ -929,7 +928,7 @@ void DeleteMetadata (wstring targetFile)
 
 		}
 		if( FAILED(hr) )
-			throw CPHException(hr, IDS_E_IPSS_ENUM_NEXT_1, hr);
+			throw CPHException(ERROR_OPEN_FAILED, IDS_E_IPSS_ENUM_NEXT_1, hr);
 	}
 }
 
