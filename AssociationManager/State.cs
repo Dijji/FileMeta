@@ -82,7 +82,23 @@ namespace FileMetadataAssociationManager
                 Extension e;
                 var cls = hkcr.OpenSubKey(@"CLSID\" + handlerGuid);
                 if (cls != null)
+                {
                     handlerTitle = (string)cls.GetValue(null);
+                    if (handlerTitle == null)
+                    {
+                        // No name - check for shell handlers
+                        if (handlerGuid == "{66742402-F9B9-11D1-A202-0000F81FEDEE}" ||
+                            handlerGuid == "{0AFCCBA6-BF90-4A4E-8482-0AC960981F5B}")
+                            handlerTitle = "Windows Shell";
+                        else
+                        {
+                            // Else resort to the dll path
+                            var ps = cls.OpenSubKey("InProcServer32");
+                            if (ps != null)
+                                handlerTitle = (string)ps.GetValue(null);
+                        }
+                    }
+                }
 
                 if (dictExtensions.TryGetValue(name.ToLower(), out e))
                 {
