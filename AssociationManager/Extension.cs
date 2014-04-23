@@ -49,6 +49,7 @@ namespace FileMetadataAssociationManager
             } 
         }
 
+        public bool HasHandler { get { return propertyHandlerGuid != null; } }
         public bool ForeignHandler { get { return propertyHandlerGuid != null && propertyHandlerGuid != OurPropertyHandlerGuid; } }
         public bool OurHandler { get { return propertyHandlerGuid != null && propertyHandlerGuid == OurPropertyHandlerGuid; } }
 
@@ -167,15 +168,15 @@ namespace FileMetadataAssociationManager
             return true;
         }
 
-        public void SelectCurrentProfileIfKnown()
+        public Profile GetCurrentProfileIfKnown()
         {
             if (!OurHandler)
-                return;
+                return null;
 
             // Find the key for the extension in HKEY_CLASSES_ROOT
             var ext = Registry.ClassesRoot.OpenSubKey(Name, false);
             if (ext == null)
-                return;
+                return null;
 
             string progid = (string)ext.GetValue(null);
 
@@ -186,7 +187,7 @@ namespace FileMetadataAssociationManager
                 target = Registry.ClassesRoot.OpenSubKey(Name, true);
 
             if (target == null)
-                return;
+                return null;
 
             // Look for PreviewDetails
             string pd = (string) target.GetValue(PreviewDetailsValueName);
@@ -195,9 +196,11 @@ namespace FileMetadataAssociationManager
                 foreach (Profile p in State.Profiles)
                 {
                     if (p.PreviewDetailsString == pd)
-                        State.SelectedProfile = p;
+                        return p;
                 }
             }
+
+            return null;
         }
 
         public void RemoveHandlerFromExtension()

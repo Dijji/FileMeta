@@ -40,11 +40,8 @@ namespace FileMetadataAssociationManager
         private void listExtensions_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             ListView lv = (ListView)sender;
-            state.SelectedExtension = (Extension)lv.SelectedItem;
-
-            if (state.SelectedExtension != null)
-                state.SelectedExtension.SelectCurrentProfileIfKnown();
-        }
+            state.SetSelectedExtensions(lv.SelectedItems);
+         }
 
         private void comboProfile_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -64,10 +61,15 @@ namespace FileMetadataAssociationManager
 
         private void addHandler_Click(object sender, RoutedEventArgs e)
         {
-            bool success = false;
+            bool success = true;
 
-            if (state.SelectedExtension != null && state.SelectedProfile != null)
-                 success = state.SelectedExtension.SetupHandlerForExtension(state.SelectedProfile);
+            if (state.SelectedExtensions.Count > 0 && state.SelectedProfile != null)
+            {
+                foreach (Extension ext in state.SelectedExtensions)
+                {
+                    success &= ext.SetupHandlerForExtension(state.SelectedProfile);
+                }
+            }
 
             if (!success)
                 MessageBox.Show(LocalizedMessages.HandlerSetupIssues);
@@ -75,8 +77,10 @@ namespace FileMetadataAssociationManager
 
         private void removeHandler_Click(object sender, RoutedEventArgs e)
         {
-            if (state.SelectedExtension != null)
-                state.SelectedExtension.RemoveHandlerFromExtension();
+            foreach (Extension ext in state.SelectedExtensions)
+            {
+                ext.RemoveHandlerFromExtension();
+            } 
         }
 
         private void refresh_Click(object sender, RoutedEventArgs e)
