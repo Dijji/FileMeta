@@ -16,15 +16,53 @@ namespace FileMetadataAssociationManager
     {
         private ObservableCollectionWithReset<Extension> extensions = new ObservableCollectionWithReset<Extension>();
         private Dictionary<string, Extension> dictExtensions = new Dictionary<string, Extension>();
-        private Extension selectedExtension = null;
+        private List<Extension> selectedExtensions = new List<Extension>();
         private Profile selectedProfile = null;
         private ObservableCollection<Profile> profiles = new ObservableCollection<Profile>();
 
         public ObservableCollectionWithReset<Extension> Extensions { get { return extensions; } }
         public ObservableCollection<Profile> Profiles { get { return profiles; } }
 
-        public Extension SelectedExtension { get { return selectedExtension; } set { selectedExtension = value; OnPropertyChanged("SelectedExtension"); } }
+        public List<Extension> SelectedExtensions { get { return selectedExtensions; } }
         public Profile SelectedProfile { get { return selectedProfile; } set { selectedProfile = value; OnPropertyChanged("SelectedProfile"); } }
+
+        public void SetSelectedExtensions(System.Collections.IList selections)
+        {
+            SelectedExtensions.Clear();
+            foreach (var s in selections)
+                SelectedExtensions.Add((Extension)s);
+
+            Profile p = null;
+            foreach (Extension e in SelectedExtensions)
+            {
+                Profile q = e.GetCurrentProfileIfKnown();
+                if (q != null)
+                {
+                    if (p == null)
+                        p = q;
+                    else if (p != q)
+                    {
+                        p = null;
+                        break;
+                    }
+                }
+            }
+            if (p != null)
+                SelectedProfile = p;
+
+            OnPropertyChanged("CanAddPropertyHandlerEtc");
+            OnPropertyChanged("CanRemovePropertyHandlerEtc");
+        }
+
+        public bool CanAddPropertyHandlerEtc
+        {
+            get
+            {
+                return Extension.IsOurPropertyHandlerRegistered && SelectedProfile != null &&
+                    selectedExtensions.Where(e => e.HasHandler).Count() == 0;
+            }
+        }
+        public bool CanRemovePropertyHandlerEtc { get { return selectedExtensions.Where(e => !e.OurHandler).Count() == 0; } }
 
         public string Restrictions
         {
@@ -107,7 +145,7 @@ namespace FileMetadataAssociationManager
             }
 
             SortExtensions();
-            SelectedExtension = Extensions.First();
+            SetSelectedExtensions(new List<Extension> {Extensions.First()});
         }
 
         public void SortExtensions()

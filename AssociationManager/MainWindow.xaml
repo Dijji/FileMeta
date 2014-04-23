@@ -28,7 +28,7 @@
             <TextBlock x:Uid="TextBlock_6" Text="To add metadata for extension:" TextWrapping="Wrap" FontSize="12" FontWeight="Bold"  Margin="5,0,0,0"/>
             <StackPanel x:Uid="StackPanel_2" Orientation="Horizontal" Margin="0,15,0,0">
                 <TextBlock x:Uid="TextBlock_7" Text="1." FontSize="12" Margin="5,0,0,0"/>
-                <TextBlock x:Uid="TextBlock_8" Text="Select a File Extension with no Handler" FontSize="12" Width="175" Margin="5,0,0,0" TextWrapping="Wrap"/>
+                <TextBlock x:Uid="TextBlock_8" Text="Select one or more File Extensions with no Handler" FontSize="12" Width="175" Margin="5,0,0,0" TextWrapping="Wrap"/>
             </StackPanel>
             <StackPanel x:Uid="StackPanel_3" Orientation="Horizontal" Margin="0,10,0,5">
                 <TextBlock x:Uid="TextBlock_9" Text="2." FontSize="12" Margin="5,0,0,0"/>
@@ -42,14 +42,14 @@
                 </ComboBox.ItemTemplate>
             </ComboBox>
             <TextBlock x:Uid="TextBlock_11" Text="3. " FontSize="12" Margin="5,5,0,5"/>
-            <Button x:Uid="addHandler" Content="Add File Meta Handler" Height="23" Name="addHandler" Margin="10,0,15,0" FontSize="12" Click="addHandler_Click" DataContext="{Binding SelectedExtension}" IsEnabled="{Binding Path=CanAddPropertyHandlerEtc}" />
+            <Button x:Uid="addHandler" Content="Add File Meta Handler" Height="23" Name="addHandler" Margin="10,0,15,0" FontSize="12" Click="addHandler_Click" IsEnabled="{Binding Path=CanAddPropertyHandlerEtc}" />
             <TextBlock x:Uid="TextBlock_12" Text="To remove handler for extension:" TextWrapping="Wrap" FontSize="12" FontWeight="Bold" Margin="5,60,0,0"/>
             <StackPanel x:Uid="StackPanel_4" Orientation="Horizontal" Margin="0,15,0,0">
                 <TextBlock x:Uid="TextBlock_13" Text="1." FontSize="12" Margin="5,0,0,0"/>
-                <TextBlock x:Uid="TextBlock_14" Text="Select a File Extension with the File Meta Property Handler" FontSize="12" Width="175" Margin="5,0,0,0" TextWrapping="Wrap"/>
+                <TextBlock x:Uid="TextBlock_14" Text="Select one or more File Extensions with the File Meta Property Handler" FontSize="12" Width="175" Margin="5,0,0,0" TextWrapping="Wrap"/>
             </StackPanel>
             <TextBlock x:Uid="TextBlock_15" Text="2." FontSize="12" Margin="5,10,0,5"/>
-            <Button x:Uid="removeHandler" Content="Remove File Meta Handler" Height="23" Name="removeHandler" Margin="10,0,15,0" FontSize="12" Click="removeHandler_Click" DataContext="{Binding SelectedExtension}" IsEnabled="{Binding Path=CanRemovePropertyHandlerEtc}" />
+            <Button x:Uid="removeHandler" Content="Remove File Meta Handler" Height="23" Name="removeHandler" Margin="10,0,15,0" FontSize="12" Click="removeHandler_Click" IsEnabled="{Binding Path=CanRemovePropertyHandlerEtc}" />
             <TextBlock x:Uid="Label_3" Text="{Binding Path=Restrictions}" TextWrapping="Wrap" Margin="5,90,0,0" FontSize="12" Style="{StaticResource ColorByRestriction}" />
         </StackPanel>
         <Grid x:Uid="Grid_2" Grid.Column="1">
@@ -63,7 +63,8 @@
                     <Image x:Uid="Image_1" Source="/FileMetaAssociationManager;component/Resources/refresh.ico" />
                 </Button>-->
             </Grid>
-            <ListView x:Uid="listExtensions" Grid.Row="1"  Name="listExtensions" Margin="0,25,0,0" ItemsSource="{Binding Path=Extensions}"  FontSize="12" SelectionChanged="listExtensions_SelectionChanged" Foreground="Black">
+            <ListView x:Uid="listExtensions" Grid.Row="1"  Name="listExtensions" Margin="0,25,0,0" ItemsSource="{Binding Path=Extensions}"
+                      FontSize="12" SelectionChanged="listExtensions_SelectionChanged" Foreground="Black" TextSearch.TextPath="Name">
                 <ListView.View>
                     <GridView x:Uid="GridView_1">
                         <GridViewColumn x:Uid="GridViewColumn_1" Width="50" Header="Name" >
