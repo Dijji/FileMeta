@@ -116,26 +116,29 @@ namespace FileMetadataAssociationManager
             if (!IsElevated)
                 return false;
 
-            // First, add the property handler extension key
-            // Watch out for 32/64 bit issues here, as the 32-bit and 64-bit values of these are separate and isolated on 64-bit Windows,
-            // the 32-bit value being under SOFTWARE\Wow6432Node.  Thus a 64-bit manager is needed to set up a 64-bit handler
-            var handlers = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\PropertySystem\PropertyHandlers", true);
-            var handler = handlers.CreateSubKey(Name);
-            handler.SetValue(null, OurPropertyHandlerGuid);
-            this.RecordPropertyHandler (OurPropertyHandlerGuid, OurPropertyHandlerTitle);
-
-            // Now find the key for the extension in HKEY_CLASSES_ROOT
+            // Find the key for the extension in HKEY_CLASSES_ROOT
             var ext = Registry.ClassesRoot.OpenSubKey(Name,false);
             if (ext == null)
                 return false;
 
             string progid = (string)ext.GetValue(null);
 
+            string targetName;
             RegistryKey target;
             if (progid != null && progid.Length > 0)
-                target = Registry.ClassesRoot.OpenSubKey(progid, true);
+                targetName = progid;
             else
-                target = Registry.ClassesRoot.OpenSubKey(Name, true);
+                targetName = Name;
+
+            try
+            {
+                target = Registry.ClassesRoot.OpenSubKey(targetName, true);
+            }
+            catch (System.Security.SecurityException e)
+            {
+                MessageBox.Show(String.Format(LocalizedMessages.NoRegistryPermission, targetName), LocalizedMessages.ProfileError);
+                return false;
+            }
 
             if (!SetupProgidRegistryEntries(target, profile))
                 return false;
@@ -145,7 +148,18 @@ namespace FileMetadataAssociationManager
             var assoc = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Classes\SystemFileAssociations", true);
             target = assoc.CreateSubKey(Name);
 
-            return SetupProgidRegistryEntries(target, profile);
+            if (!SetupProgidRegistryEntries(target, profile))
+                return false;
+
+            // Now, add the property handler extension key
+            // Watch out for 32/64 bit issues here, as the 32-bit and 64-bit values of these are separate and isolated on 64-bit Windows,
+            // the 32-bit value being under SOFTWARE\Wow6432Node.  Thus a 64-bit manager is needed to set up a 64-bit handler
+            var handlers = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\PropertySystem\PropertyHandlers", true);
+            var handler = handlers.CreateSubKey(Name);
+            handler.SetValue(null, OurPropertyHandlerGuid);
+            this.RecordPropertyHandler(OurPropertyHandlerGuid, OurPropertyHandlerTitle);
+
+            return true;
         }
 
         private bool SetupProgidRegistryEntries (RegistryKey target, Profile profile)
@@ -182,9 +196,9 @@ namespace FileMetadataAssociationManager
 
             RegistryKey target;
             if (progid != null && progid.Length > 0)
-                target = Registry.ClassesRoot.OpenSubKey(progid, true);
+                target = Registry.ClassesRoot.OpenSubKey(progid, false);
             else
-                target = Registry.ClassesRoot.OpenSubKey(Name, true);
+                target = Registry.ClassesRoot.OpenSubKey(Name, false);
 
             if (target == null)
                 return null;
@@ -208,14 +222,6 @@ namespace FileMetadataAssociationManager
             if (!OurHandler)
                 return;
 
-            // First, remove the handler extension key
-            // Watch out for 32/64 bit issues here, as the 32-bit and 64-bit values of these are separate and isolated on 64-bit Windows,
-            // the 32-bit value being under SOFTWARE\Wow6432Node.  Thus a 64-bit manager is needed to set up a 64-bit handler
-            var handlers = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\PropertySystem\PropertyHandlers", true);
-            if (handlers != null)
-                handlers.DeleteSubKey(Name);
-            this.RecordPropertyHandler (null, null);
-
             // Now find the key for the extension in HKEY_CLASSES_ROOT
             RegistryKey target;
             var ext = Registry.ClassesRoot.OpenSubKey(Name, false);
@@ -224,11 +230,22 @@ namespace FileMetadataAssociationManager
             if (ext != null)
             {
                 string progid = (string)ext.GetValue(null);
+                string targetName;
 
                 if (progid != null && progid.Length > 0)
-                    target = Registry.ClassesRoot.OpenSubKey(progid, true);
+                    targetName = progid;
                 else
-                    target = Registry.ClassesRoot.OpenSubKey(Name, true);
+                    targetName = Name;
+
+                try
+                {
+                    target = Registry.ClassesRoot.OpenSubKey(targetName, true);
+                }
+                catch (System.Security.SecurityException e)
+                {
+                    MessageBox.Show(String.Format(LocalizedMessages.NoRegistryPermission, targetName), LocalizedMessages.ProfileError);
+                    return;
+                }
 
                 RemoveProgidRegistryEntries(target);
             }
@@ -239,6 +256,14 @@ namespace FileMetadataAssociationManager
             target = assoc.OpenSubKey(Name, true);
 
             RemoveProgidRegistryEntries(target);
+
+            // Now, remove the handler extension key
+            // Watch out for 32/64 bit issues here, as the 32-bit and 64-bit values of these are separate and isolated on 64-bit Windows,
+            // the 32-bit value being under SOFTWARE\Wow6432Node.  Thus a 64-bit manager is needed to set up a 64-bit handler
+            var handlers = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\PropertySystem\PropertyHandlers", true);
+            if (handlers != null)
+                handlers.DeleteSubKey(Name);
+            this.RecordPropertyHandler(null, null);
         }
 
         private void RemoveProgidRegistryEntries(RegistryKey target)
