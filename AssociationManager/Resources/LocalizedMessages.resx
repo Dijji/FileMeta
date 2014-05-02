@@ -136,7 +136,7 @@
     <value>Cannot be cast to unsupported type.</value>
   </data>
   <data name="HandlerSetupIssues" xml:space="preserve">
-    <value>Handler setup was at best partially successful</value>
+    <value>Some errors occurred during handler setup</value>
   </data>
   <data name="PropertyHandlerCurrent" xml:space="preserve">
     <value>Current property handler for {0} is {1}</value>
@@ -149,5 +149,11 @@
   </data>
   <data name="NoContextMenus" xml:space="preserve">
     <value>No context menus - our context handler is not registered</value>
+  </data>
+  <data name="NoRegistryPermission" xml:space="preserve">
+    <value>Administrator does not have write permission for '{0}' registry key</value>
+  </data>
+  <data name="ProfileError" xml:space="preserve">
+    <value>Could not configure Profile</value>
   </data>
 </root>
