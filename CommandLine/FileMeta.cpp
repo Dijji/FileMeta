@@ -121,7 +121,7 @@ int wmain(int argc, WCHAR* argv[])
 		else if (xmlDirArg.isSet())
 		{
 			if (!PathIsDirectory(xmlDirArg.getValue().c_str()))
-				throw ArgException(L"Cannot find directory", L"d");
+				throw ArgException(L"Cannot find directory", L"f");
 			else if (xmlConsoleSwitch.isSet())
 				throw ArgException(L"-f and -c cannot be used together", L"console");
 		}
