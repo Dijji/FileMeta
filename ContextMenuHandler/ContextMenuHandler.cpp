@@ -19,6 +19,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <map>
 #include <vector>
 #include <algorithm>
 using namespace std;
@@ -45,6 +46,10 @@ static const WCHAR* TypeAttrName		= L"Type";
 static const WCHAR* TypeIdAttrName	    = L"TypeId";
 static const WCHAR* ValueNodeName		= L"Value";
 
+static const WCHAR* OurPropertyHandlerGuid64 = L"{D06391EE-2FEB-419B-9667-AD160D0849F3}";
+static const WCHAR* OurPropertyHandlerGuid32 = L"{60211757-EF87-465e-B6C1-B37CF98295F9}";
+
+
 class CPHException 
 {
 public:
@@ -64,6 +69,50 @@ public:
 	WCHAR   _pszError[MAX_PATH];
 };
 
+class CExtensionChecker
+{
+private:
+	std::map<std::wstring, BOOL> m_extensions;		// map of extensions checked so far
+
+public:
+	// See if file is handled by our property handler
+	BOOL HasOurPropertyHandler(wstring fileName)
+	{
+		WCHAR pszExt[_MAX_EXT];
+		BOOL val = FALSE;
+
+		// Try and get the extension
+		if (0 == _wsplitpath_s(fileName.c_str(), NULL, 0, NULL, 0, NULL, 0, pszExt, _MAX_EXT))
+		{
+			CharLower(pszExt); // use lower case for the map
+
+			// If we've already checked this extension, return the result
+			if (m_extensions.find(pszExt) != m_extensions.end())
+				return m_extensions[pszExt];
+
+			wstring subKey = L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\PropertySystem\\PropertyHandlers\\";
+			subKey.append(pszExt);
+
+			WCHAR buffer[_MAX_EXT];
+			DWORD size = _MAX_EXT;
+			// Not finding the key results in FALSE
+			if (ERROR_SUCCESS == RegGetValue(HKEY_LOCAL_MACHINE, subKey.c_str(), NULL, RRF_RT_REG_SZ, NULL, buffer, &size))
+			{
+				// If the key is found, TRUE iff our property handler
+#ifdef _WIN64
+				val = (0 == StrCmpI(buffer, OurPropertyHandlerGuid64));
+#else
+				val = (0 == StrCmpI(buffer, OurPropertyHandlerGuid32));
+#endif	
+			}
+
+			m_extensions[pszExt] = val;
+		}
+
+		return val;
+	}
+};
+
 void ConvertVarTypeToString( VARTYPE vt, WCHAR *pwszType, size_t cchType );
 std::vector<std::wstring> &wsplit(const std::wstring &s, WCHAR delim, std::vector<std::wstring> &elems);
 std::vector<std::wstring> wsplit(const std::wstring &s, WCHAR delim);
@@ -71,7 +120,7 @@ std::vector<std::wstring> wsplit(const std::wstring &s, WCHAR delim);
 class CContextMenuHandler : public IShellExtInit, public IContextMenu
 {
 public:
-    CContextMenuHandler() : _cRef(1)
+    CContextMenuHandler() : _cRef(1), m_pdtobj(NULL)
     {
         DllAddRef();
     }
@@ -113,23 +162,24 @@ public:
 
 
 private:
-	HRESULT CContextMenuHandler::MetadataPresent();
-	void CContextMenuHandler::ExportMetadata (xml_document<WCHAR> *doc);
+	HRESULT CContextMenuHandler::MetadataPresent(wstring targetFile);
+	void CContextMenuHandler::ExportMetadata (xml_document<WCHAR> *doc, wstring targetFile);
 	void CContextMenuHandler::ExportPropertySetData (xml_document<WCHAR> *doc, xml_node<WCHAR> *root, PROPERTYKEY* keys, DWORD& index, CComPtr<IPropertyStore> pStore);
-	void CContextMenuHandler::ImportMetadata (xml_document<WCHAR> *doc);
+	void CContextMenuHandler::ImportMetadata (xml_document<WCHAR> *doc, wstring targetFile);
 	void CContextMenuHandler::ImportPropertySetData (xml_document<WCHAR> *doc, xml_node<WCHAR> *stor, FMTID fmtid, CComPtr<IPropertyStore> pStore);
-	void CContextMenuHandler::DeleteMetadata ();
+	void CContextMenuHandler::DeleteMetadata (wstring targetFile);
 
 	~CContextMenuHandler()
     {
+		SafeRelease(&m_pdtobj);
         DllRelease();
     }
 
     long _cRef;
-	
-    wchar_t m_szSelectedFile[MAX_PATH];			// The name of the selected file
-	wchar_t m_szXmlFile[MAX_PATH];				// The name of the metadata file
+	CExtensionChecker m_checker;
 
+	IDataObject *m_pdtobj;
+	std::vector<std::wstring> m_files;
 };
 
 #pragma region Tracing
@@ -155,50 +205,24 @@ void OutputDebugStringFormat( WCHAR* lpszFormat, ... )
 #pragma region IShellExtInit
 
 // Initialize the context menu handler.
+// If any value other than S_OK is returned from the method, the context 
+// menu item is not displayed.
 IFACEMETHODIMP CContextMenuHandler::Initialize(
     LPCITEMIDLIST pidlFolder, LPDATAOBJECT pDataObj, HKEY hKeyProgID)
 {
+	SafeRelease(&m_pdtobj);
+
     if (NULL == pDataObj)
     {
         return E_INVALIDARG;
     }
-
-    HRESULT hr = E_FAIL;
-
-    FORMATETC fe = { CF_HDROP, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
-    STGMEDIUM stm;
-
-    // The pDataObj pointer contains the objects being acted upon
-    if (SUCCEEDED(pDataObj->GetData(&fe, &stm)))
-    {
-        // Get an HDROP handle.
-        HDROP hDrop = static_cast<HDROP>(GlobalLock(stm.hGlobal));
-        if (hDrop != NULL)
-        {
-            // Determine how many files are involved in this operation. 
-            // We show the custom context menu item only when exactly one file is selected
-            UINT nFiles = DragQueryFile(hDrop, 0xFFFFFFFF, NULL, 0);
-            if (nFiles == 1)
-            {
-                // Get the path of the file.
-                if (0 != DragQueryFile(hDrop, 0, m_szSelectedFile, 
-                    ARRAYSIZE(m_szSelectedFile)))
-                {
-					StringCbCopyW(m_szXmlFile, MAX_PATH, m_szSelectedFile);
-					StringCbCatW(m_szXmlFile, MAX_PATH, MetadataFileSuffix);
-                    hr = S_OK;
-                }
-            }
-
-            GlobalUnlock(stm.hGlobal);
-        }
-
-        ReleaseStgMedium(&stm);
+	else
+	{ 
+        m_pdtobj = pDataObj; 
+        m_pdtobj->AddRef(); 
     }
 
-    // If any value other than S_OK is returned from the method, the context 
-    // menu item is not displayed.
-    return hr;
+	return S_OK;
 }
 
 #pragma endregion
@@ -223,6 +247,48 @@ IFACEMETHODIMP CContextMenuHandler::QueryContextMenu(
         return MAKE_HRESULT(SEVERITY_SUCCESS, 0, USHORT(0));
     }
 
+	HRESULT hr = E_FAIL;
+
+    FORMATETC fe = { CF_HDROP, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
+    STGMEDIUM stm;
+
+    // The pDataObj pointer contains the objects being acted upon
+    if (NULL != m_pdtobj && SUCCEEDED(m_pdtobj->GetData(&fe, &stm)))
+    {
+        // Get an HDROP handle.
+        HDROP hDrop = static_cast<HDROP>(GlobalLock(stm.hGlobal));
+        if (hDrop != NULL)
+        {
+            // Determine how many files are involved in this operation. 
+            // We show the custom context menu item only when exactly one file is selected
+            UINT nFiles = DragQueryFile(hDrop, 0xFFFFFFFF, NULL, 0);
+	 		WCHAR buff[MAX_PATH];
+
+			for (int i=0; i < nFiles; i++)
+			{
+		      DragQueryFile(hDrop, i, buff, sizeof(buff));
+			  m_files.push_back(buff);
+			}
+
+            GlobalUnlock(stm.hGlobal);
+        }
+
+        ReleaseStgMedium(&stm);
+    }
+
+	wchar_t szXmlTarget[MAX_PATH];	
+    hr = S_OK;
+
+    if (m_files.size() == 1)
+    {
+		StringCbCopyW(szXmlTarget, MAX_PATH, m_files[0].c_str());
+		StringCbCatW(szXmlTarget, MAX_PATH, MetadataFileSuffix);
+    }
+	else
+	{
+		AccessResourceString(IDS_XML_FILE, szXmlTarget, MAX_PATH);
+	}
+	
     // First, create and populate a submenu.
     HMENU hSubmenu = CreatePopupMenu();
     UINT uID = idCmdFirst;
@@ -230,29 +296,38 @@ IFACEMETHODIMP CContextMenuHandler::QueryContextMenu(
 
 	// Export
     AccessResourceString(IDS_EXPORT, buffer, MAX_PATH);
-	StringCbCatW(buffer, 2*MAX_PATH, m_szXmlFile);
+	StringCbCatW(buffer, 2*MAX_PATH, szXmlTarget);
 	if (!InsertMenu ( hSubmenu, 0, MF_BYPOSITION, uID++, buffer) )
 		return HRESULT_FROM_WIN32(GetLastError());
 
 	// Import
     AccessResourceString(IDS_IMPORT, buffer, MAX_PATH);
-	StringCbCatW(buffer, 2*MAX_PATH, m_szXmlFile);
+	StringCbCatW(buffer, 2*MAX_PATH, szXmlTarget);
 	UINT uMenuFlags = MF_BYPOSITION;
 
-	// Grey menu item if file does not exist or cannot be opened
-	wifstream myfile;
-	myfile.open (m_szXmlFile, ios_base::in );
-	if (!myfile.is_open())
-		uMenuFlags |= MF_GRAYED;
-	myfile.close();
+	// Grey menu item if single file does not exist or cannot be opened
+    if (m_files.size() == 1)
+    {
+		wifstream myfile;
+		myfile.open (szXmlTarget, ios_base::in );
+		if (!myfile.is_open())
+			uMenuFlags |= MF_GRAYED;
+		myfile.close();
+	}
+
     if (!InsertMenu ( hSubmenu, 1, uMenuFlags, uID++, buffer) )
 		return HRESULT_FROM_WIN32(GetLastError());
 
 	// Delete
 	AccessResourceString(IDS_DELETE, buffer, MAX_PATH);
 	uMenuFlags = MF_BYPOSITION;
-	if (S_OK != MetadataPresent())
-		uMenuFlags |= MF_GRAYED;
+
+	// Grey menu item if single file and no metadata present
+    if (m_files.size() == 1)
+    {
+		if (S_OK != MetadataPresent(m_files[0].c_str()))
+			uMenuFlags |= MF_GRAYED;
+	}
 
     if (!InsertMenu ( hSubmenu, 2, uMenuFlags, uID++, buffer) )
 		return HRESULT_FROM_WIN32(GetLastError());
@@ -293,26 +368,39 @@ IFACEMETHODIMP CContextMenuHandler::InvokeCommand(LPCMINVOKECOMMANDINFO pici)
 		case IDM_EXPORT:
 			try
 			{
-				// Build an XML document containing thw metadata
-				xml_document<WCHAR> doc;
-				ExportMetadata(&doc);
-
-				// writing to a string rather than directly to the stream is odd, but writing directly does not compile
-				// (trying to access a private constructor on traits - a typically arcane template issue)
-				wstring s;
-				print(std::back_inserter(s), doc, 0);
-
-				// Now write from the XML string to a file stream
-				// This used to be STL, but wofstream by default writes 8-bit encoded files, and changing that is complex
-				FILE *pfile;
-				errno_t err = _wfopen_s(&pfile, m_szXmlFile, L"w+, ccs=UTF-16LE");
-				if (0 == err)
+				for (int i = 0; i < m_files.size(); i++)
 				{
-					fwrite(s.c_str(), sizeof(WCHAR), s.length(), pfile);
-					fclose(pfile);
+					// In the multi-file case, we know only that at least one of the files has our context menu,
+					// so we need to check the extension of each file to see if our propertyhandler is configured for it
+					if (m_files.size() > 1)
+						if (!m_checker.HasOurPropertyHandler(m_files[i]))
+							continue;
+
+					// Build an XML document containing thw metadata
+					xml_document<WCHAR> doc;
+					ExportMetadata(&doc, m_files[i]);
+
+					// writing to a string rather than directly to the stream is odd, but writing directly does not compile
+					// (trying to access a private constructor on traits - a typically arcane template issue)
+					wstring s;
+					print(std::back_inserter(s), doc, 0);
+
+					wchar_t szXmlTarget[MAX_PATH];	
+					StringCbCopyW(szXmlTarget, MAX_PATH, m_files[i].c_str());
+					StringCbCatW(szXmlTarget, MAX_PATH, MetadataFileSuffix);
+
+					// Now write from the XML string to a file stream
+					// This used to be STL, but wofstream by default writes 8-bit encoded files, and changing that is complex
+					FILE *pfile;
+					errno_t err = _wfopen_s(&pfile, szXmlTarget, L"w+, ccs=UTF-16LE");
+					if (0 == err)
+					{
+						fwrite(s.c_str(), sizeof(WCHAR), s.length(), pfile);
+						fclose(pfile);
+					}
+					else
+						throw CPHException(E_FAIL, IDS_E_FILEOPEN_1, err);
 				}
-				else
-					throw CPHException(E_FAIL, IDS_E_FILEOPEN_1, err);
 
 				hr = S_OK;
 			}
@@ -328,79 +416,94 @@ IFACEMETHODIMP CContextMenuHandler::InvokeCommand(LPCMINVOKECOMMANDINFO pici)
 		case IDM_IMPORT:
 			try
 			{
-				// rapidxml parsing works only from a string, so read the whole file
-				FILE *pfile;
-				errno_t err = _wfopen_s(&pfile, m_szXmlFile, L"rb");
-				if (0 == err)
+				for (int i = 0; i < m_files.size(); i++)
 				{
-					fseek (pfile , 0 , SEEK_END);
-					size_t lSize = ftell (pfile);  // size in bytes
-					rewind (pfile);
+					// In the multi-file case, we know only that at least one of the files has our context menu,
+					// so we need to check the extension of each file to see if our propertyhandler is configured for it
+					if (m_files.size() > 1)
+						if (!m_checker.HasOurPropertyHandler(m_files[i]))
+							continue;
 
-					CHAR* buffer = new CHAR[lSize + sizeof(WCHAR)];
-					WCHAR* wbuffer;
-					size_t lwSize;
-					size_t offset = 0;
+					wchar_t szXmlTarget[MAX_PATH];	
+					StringCbCopyW(szXmlTarget, MAX_PATH, m_files[i].c_str());
+					StringCbCatW(szXmlTarget, MAX_PATH, MetadataFileSuffix);
 
-					fread(buffer, sizeof(CHAR), lSize, pfile);
-					fclose(pfile);
-
-					// export files are now UTF-16 with BOM
-					if (buffer[0] == (CHAR)0xFF && buffer[1] == (CHAR)0xFE)
+					// rapidxml parsing works only from a string, so read the whole file
+					FILE *pfile;
+					errno_t err = _wfopen_s(&pfile, szXmlTarget, L"rb");
+					if (0 == err)
 					{
-						wbuffer = (WCHAR*) buffer;
-						lwSize = lSize / sizeof(WCHAR);
-						wbuffer[lwSize] = L'\0';  // ensure termination
-						offset++;  // skip BOM
-					}
-					// but also cope with ASCII files from our previous versions, or that have been hand-edited in ASCII
-					else
-					{
-						wbuffer = new WCHAR[lSize + 1];
-						lwSize = lSize;
-						size_t conv;
-						mbstowcs_s(&conv, wbuffer, lSize+1, buffer, lSize);
-						delete [] buffer;
-					}
+						fseek (pfile , 0 , SEEK_END);
+						size_t lSize = ftell (pfile);  // size in bytes
+						rewind (pfile);
 
-					// parse the XML
-					xml_document<WCHAR> doc;
-					WCHAR * xml = doc.allocate_string(wbuffer+offset, lwSize+1-offset);  
+						CHAR* buffer = new CHAR[lSize + sizeof(WCHAR)];
+						WCHAR* wbuffer;
+						size_t lwSize;
+						size_t offset = 0;
 
-					if (offset == 0) // ASCII file
-						delete [] wbuffer;
-					else
-						delete [] buffer;
+						fread(buffer, sizeof(CHAR), lSize, pfile);
+						fclose(pfile);
+
+						// export files are now UTF-16 with BOM
+						if (buffer[0] == (CHAR)0xFF && buffer[1] == (CHAR)0xFE)
+						{
+							wbuffer = (WCHAR*) buffer;
+							lwSize = lSize / sizeof(WCHAR);
+							wbuffer[lwSize] = L'\0';  // ensure termination
+							offset++;  // skip BOM
+						}
+						// but also cope with ASCII files from our previous versions, or that have been hand-edited in ASCII
+						else
+						{
+							wbuffer = new WCHAR[lSize + 1];
+							lwSize = lSize;
+							size_t conv;
+							mbstowcs_s(&conv, wbuffer, lSize+1, buffer, lSize);
+							delete [] buffer;
+						}
+
+						// parse the XML
+						xml_document<WCHAR> doc;
+						WCHAR * xml = doc.allocate_string(wbuffer+offset, lwSize+1-offset);  
+
+						if (offset == 0) // ASCII file
+							delete [] wbuffer;
+						else
+							delete [] buffer;
 	
-					try
-					{
-						doc.parse<0>(xml);
+						try
+						{
+							doc.parse<0>(xml);
+						}
+						catch(parse_error& e)
+						{
+							size_t size = strlen(e.what()) + 1;
+							WCHAR * error = new WCHAR[size];
+							size_t convertedChars = 0;
+							mbstowcs_s(&convertedChars, error, size, e.what(), _TRUNCATE);
+
+	#define MAX_ERRLENGTH 20
+							WCHAR content[MAX_ERRLENGTH + 1];
+							size = wcslen(e.where<WCHAR>());
+							if (size > MAX_ERRLENGTH)
+								size = MAX_ERRLENGTH;
+							wmemcpy(content, e.where<WCHAR>(), size);
+							content[MAX_ERRLENGTH] = L'\0';  // ensure termination
+
+							CPHException cphe = CPHException(E_FAIL, IDS_E_XML_PARSE_ERROR_2, error, content);
+							delete [] error;
+							throw cphe;
+						}
+
+						// apply it 
+						ImportMetadata(&doc, m_files[i]);
 					}
-					catch(parse_error& e)
-					{
-						size_t size = strlen(e.what()) + 1;
-						WCHAR * error = new WCHAR[size];
-						size_t convertedChars = 0;
-						mbstowcs_s(&convertedChars, error, size, e.what(), _TRUNCATE);
 
-#define MAX_ERRLENGTH 20
-						WCHAR content[MAX_ERRLENGTH + 1];
-						size = wcslen(e.where<WCHAR>());
-						if (size > MAX_ERRLENGTH)
-							size = MAX_ERRLENGTH;
-						wmemcpy(content, e.where<WCHAR>(), size);
-						content[MAX_ERRLENGTH] = L'\0';  // ensure termination
-
-						CPHException cphe = CPHException(E_FAIL, IDS_E_XML_PARSE_ERROR_2, error, content);
-						delete [] error;
-						throw cphe;
-					}
-
-					// apply it 
-					ImportMetadata(&doc);
+					// Tolerate file access problems in the multi-file case
+					else if (m_files.size() == 1)
+						throw CPHException(E_FAIL, IDS_E_FILEOPEN_1, err);
 				}
-				else
-					throw CPHException(E_FAIL, IDS_E_FILEOPEN_1, err);
 			}
 			catch(CPHException& e)
 			{
@@ -415,7 +518,16 @@ IFACEMETHODIMP CContextMenuHandler::InvokeCommand(LPCMINVOKECOMMANDINFO pici)
 		case IDM_DELETE:
 			try
 			{
-				DeleteMetadata();
+				for (int i = 0; i < m_files.size(); i++)
+				{
+					// In the multi-file case, we know only that at least one of the files has our context menu,
+					// so we need to check the extension of each file to see if our propertyhandler is configured for it
+					if (m_files.size() > 1)
+						if (!m_checker.HasOurPropertyHandler(m_files[i]))
+							continue;
+
+					DeleteMetadata(m_files[i]);
+				}
 			}
 			catch(CPHException& e)
 			{
@@ -471,7 +583,7 @@ IFACEMETHODIMP CContextMenuHandler::GetCommandString(UINT_PTR idCommand,
     return hr;
 }
 
-HRESULT CContextMenuHandler::MetadataPresent()
+HRESULT CContextMenuHandler::MetadataPresent(wstring targetFile)
 {
     HRESULT hr = E_UNEXPECTED;
 	bool present = false;
@@ -481,7 +593,7 @@ HRESULT CContextMenuHandler::MetadataPresent()
 		CComPtr<IPropertySetStorage> pPropSetStg;
 		CComPtr<IPropertyStore> pStore;		
 
-		hr = (v_pfnStgOpenStorageEx)(m_szSelectedFile, STGM_READ | STGM_SHARE_EXCLUSIVE, STGFMT_FILE, 0, NULL, 0, 
+		hr = (v_pfnStgOpenStorageEx)(targetFile.c_str(), STGM_READ | STGM_SHARE_EXCLUSIVE, STGFMT_FILE, 0, NULL, 0, 
 				IID_IPropertySetStorage, (void**)&pPropSetStg);
 	
 		if (SUCCEEDED(hr))
@@ -518,7 +630,7 @@ inline bool operator<(const PROPERTYKEY& a, const PROPERTYKEY& b)
 		return a.pid < b.pid;
 }
 
-void CContextMenuHandler::ExportMetadata (xml_document<WCHAR> *doc)
+void CContextMenuHandler::ExportMetadata (xml_document<WCHAR> *doc, wstring targetFile)
 {
     HRESULT hr = E_UNEXPECTED;
 
@@ -533,12 +645,12 @@ void CContextMenuHandler::ExportMetadata (xml_document<WCHAR> *doc)
 
 		try
 		{
-			hr = (v_pfnStgOpenStorageEx)(m_szSelectedFile, STGM_READ | STGM_SHARE_EXCLUSIVE, STGFMT_FILE, 0, NULL, 0, 
+			hr = (v_pfnStgOpenStorageEx)(targetFile.c_str(), STGM_READ | STGM_SHARE_EXCLUSIVE, STGFMT_FILE, 0, NULL, 0, 
 					IID_IPropertySetStorage, (void**)&pPropSetStg);
 			if( FAILED(hr) ) 
 				throw CPHException(hr, IDS_E_IPSS_1, hr);
 
-			hr = PSCreatePropertyStoreFromPropertySetStorage(pPropSetStg, STGM_READWRITE, IID_IPropertyStore, (void **)&pStore);
+			hr = PSCreatePropertyStoreFromPropertySetStorage(pPropSetStg, STGM_READ, IID_IPropertyStore, (void **)&pStore);
 			pPropSetStg.Release();
 			if( FAILED(hr) ) 
 				throw CPHException(hr, IDS_E_PSCREATE_1, hr);
@@ -699,7 +811,7 @@ void CContextMenuHandler::ExportPropertySetData (xml_document<WCHAR> *doc, xml_n
 }
 
 // throws CPHException on error
-void CContextMenuHandler::ImportMetadata (xml_document<WCHAR> *doc)
+void CContextMenuHandler::ImportMetadata (xml_document<WCHAR> *doc, wstring targetFile)
 {
     HRESULT hr = E_UNEXPECTED;
 
@@ -711,7 +823,7 @@ void CContextMenuHandler::ImportMetadata (xml_document<WCHAR> *doc)
 		CComPtr<IPropertySetStorage> pPropSetStg;
 		CComPtr<IPropertyStore> pStore;	
 		 
-		hr = (v_pfnStgOpenStorageEx)(m_szSelectedFile, STGM_READWRITE | STGM_SHARE_EXCLUSIVE, STGFMT_FILE, 0, NULL, 0, 
+		hr = (v_pfnStgOpenStorageEx)(targetFile.c_str(), STGM_READWRITE | STGM_SHARE_EXCLUSIVE, STGFMT_FILE, 0, NULL, 0, 
 				IID_IPropertySetStorage, (void**)&pPropSetStg);
 		if( FAILED(hr) ) 
 			throw CPHException(hr, IDS_E_IPSS_1, hr);
@@ -846,7 +958,7 @@ void CContextMenuHandler::ImportPropertySetData (xml_document<WCHAR> *doc, xml_n
 	}
 }
 
-void CContextMenuHandler::DeleteMetadata ()
+void CContextMenuHandler::DeleteMetadata (wstring targetFile)
 {
     HRESULT hr = E_UNEXPECTED;
 
@@ -856,7 +968,7 @@ void CContextMenuHandler::DeleteMetadata ()
 		CComPtr<IEnumSTATPROPSETSTG> penum;
 		STATPROPSETSTG statpropsetstg;
 
-		hr = (v_pfnStgOpenStorageEx)(m_szSelectedFile, STGM_READWRITE | STGM_SHARE_EXCLUSIVE, STGFMT_FILE, 0, NULL, 0, 
+		hr = (v_pfnStgOpenStorageEx)(targetFile.c_str(), STGM_READWRITE | STGM_SHARE_EXCLUSIVE, STGFMT_FILE, 0, NULL, 0, 
 				IID_IPropertySetStorage, (void**)&pPropSetStg);
 		if( FAILED(hr) ) 
 			throw CPHException(hr, IDS_E_IPSS_1, hr);
