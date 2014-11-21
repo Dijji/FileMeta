@@ -6,6 +6,7 @@
 #include <string>
 #include <iostream>
 #include <algorithm>
+#include <map>
 #include <shlwapi.h>
 #include <propsys.h>
 #include <propkey.h>
@@ -34,6 +35,9 @@ static const WCHAR* TypeAttrName		= L"Type";
 static const WCHAR* TypeIdAttrName	    = L"TypeId";
 static const WCHAR* ValueNodeName		= L"Value";
 
+static const WCHAR* OurPropertyHandlerGuid64 = L"{D06391EE-2FEB-419B-9667-AD160D0849F3}";
+static const WCHAR* OurPropertyHandlerGuid32 = L"{60211757-EF87-465e-B6C1-B37CF98295F9}";
+
 int AccessResourceString(UINT uId, LPWSTR lpBuffer, int nBufferMax)
 {
 	return LoadStringW(GetModuleHandle(NULL), uId, lpBuffer, nBufferMax);
@@ -58,6 +62,51 @@ public:
 	WCHAR   _pszError[MAX_PATH];
 };
 
+class CExtensionChecker
+{
+private:
+	std::map<std::wstring, BOOL> m_extensions;		// map of extensions checked so far
+
+public:
+	// See if file is handled by our property handler
+	BOOL HasOurPropertyHandler(wstring fileName)
+	{
+		WCHAR pszExt[_MAX_EXT];
+		BOOL val = FALSE;
+
+		// Try and get the extension
+		if (0 == _wsplitpath_s(fileName.c_str(), NULL, 0, NULL, 0, NULL, 0, pszExt, _MAX_EXT))
+		{
+			CharLower(pszExt); // use lower case for the map
+
+			// If we've already checked this extension, return the result
+			if (m_extensions.find(pszExt) != m_extensions.end())
+				return m_extensions[pszExt];
+
+			wstring subKey = L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\PropertySystem\\PropertyHandlers\\";
+			subKey.append(pszExt);
+
+			WCHAR buffer[_MAX_EXT];
+			DWORD size = _MAX_EXT;
+			// Not finding the key results in FALSE
+			if (ERROR_SUCCESS == RegGetValue(HKEY_LOCAL_MACHINE, subKey.c_str(), NULL, RRF_RT_REG_SZ, NULL, buffer, &size))
+			{
+				// If the key is found, TRUE iff our property handler
+#ifdef _WIN64
+				val = (0 == StrCmpI(buffer, OurPropertyHandlerGuid64));
+#else
+				val = (0 == StrCmpI(buffer, OurPropertyHandlerGuid32));
+#endif	
+			}
+
+			m_extensions[pszExt] = val;
+		}
+
+		return val;
+	}
+};
+
+
 void ExportMetadata (xml_document<WCHAR> *doc, wstring targetFile);
 void ImportMetadata (xml_document<WCHAR> *doc, wstring targetFile);
 void DeleteMetadata (wstring targetFile);
@@ -70,6 +119,8 @@ int wmain(int argc, WCHAR* argv[])
 
 	try
 	{  
+		CExtensionChecker checker;
+
 		// Define the command line object.
 		CmdLine cmd(L"Export, import or delete File Meta metadata properties", L'=', L"0.1");
 
@@ -140,6 +191,11 @@ int wmain(int argc, WCHAR* argv[])
 				wcerr << L"Cannot find file \"" << targetFile.c_str() << L"\"" << endl;
 				result = ERROR_FILE_NOT_FOUND;
 				break;
+			}
+			else if (!checker.HasOurPropertyHandler(targetFile))
+			{
+				// Skip files that do not have our property handler
+				continue;
 			}
 			else if (deleteSwitch.isSet())
 			{
@@ -579,7 +635,7 @@ void ExportMetadata (xml_document<WCHAR> *doc, wstring targetFile)
 			if( FAILED(hr) ) 
 				throw CPHException(ERROR_OPEN_FAILED, IDS_E_IPSS_1, hr);
 
-			hr = PSCreatePropertyStoreFromPropertySetStorage(pPropSetStg, STGM_READWRITE, IID_IPropertyStore, (void **)&pStore);
+			hr = PSCreatePropertyStoreFromPropertySetStorage(pPropSetStg, STGM_READ, IID_IPropertyStore, (void **)&pStore);
 			pPropSetStg.Release();
 			if( FAILED(hr) ) 
 				throw CPHException(ERROR_OPEN_FAILED, IDS_E_PSCREATE_1, hr);
