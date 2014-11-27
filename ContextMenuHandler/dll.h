@@ -27,12 +27,8 @@ class DECLSPEC_UUID("DA38301B-BE91-4397-B2C8-E27A0BD80CC5") CContextMenuHandler;
 #endif
 HRESULT CContextMenuHandler_CreateInstance(REFIID riid, void **ppv);
 
-typedef HRESULT (CALLBACK* PFN_STGOPENSTGEX)(const WCHAR*, DWORD, DWORD, DWORD, void*, void*, REFIID riid, void **);
-
 void DllAddRef();
 void DllRelease();
 
 HRESULT RegisterContextMenuHandler();
 HRESULT UnregisterContextMenuHandler();
-int AccessResourceString(UINT uId, LPWSTR lpBuffer, int nBufferMax);
-BOOL GetStgOpenStorageEx();

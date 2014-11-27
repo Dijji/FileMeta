@@ -29,9 +29,6 @@ const CLASS_OBJECT_INIT c_rgClassObjectInit[] =
 long g_cRefModule = 0;
 BOOL              v_fRunningOnNT;        // Flag Set When on Unicode OS
 
-PFN_STGOPENSTGEX  v_pfnStgOpenStorageEx; // StgOpenStorageEx (Win2K/XP only)
-
-
 // Handle the the DLL's module
 HINSTANCE g_hInst = NULL;
 
@@ -164,18 +161,8 @@ STDAPI DllUnregisterServer()
     return hr;
 }
 
+// An implementation of this is required by XmlHelpers
 int AccessResourceString(UINT uId, LPWSTR lpBuffer, int nBufferMax)
 {
 	return LoadStringW(g_hInst, uId, lpBuffer, nBufferMax);
-}
-
-BOOL GetStgOpenStorageEx()
-{
-	if (!v_pfnStgOpenStorageEx)
-	{
-		BOOL fRunningOnNT = ((GetVersion() & 0x80000000) != 0x80000000);
-		v_pfnStgOpenStorageEx = ((fRunningOnNT) ? (PFN_STGOPENSTGEX)GetProcAddress(GetModuleHandle(L"OLE32"), "StgOpenStorageEx") : NULL);
-	}
-
-	return (v_pfnStgOpenStorageEx != NULL);
 }
