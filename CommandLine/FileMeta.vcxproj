@@ -173,6 +173,7 @@
     <ClInclude Include="tclap\Visitor.h" />
     <ClInclude Include="tclap\XorHandler.h" />
     <ClInclude Include="tclap\ZshCompletionOutput.h" />
+    <ClInclude Include="XmlHelpers.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="FileMeta.cpp" />
@@ -182,6 +183,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="XmlHelpers.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="FileMeta.rc" />

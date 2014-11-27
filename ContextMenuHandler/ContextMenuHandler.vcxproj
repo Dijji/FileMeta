@@ -121,6 +121,7 @@
     <None Include="FileMetaContextMenuHandler.def" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\CommandLine\XmlHelpers.h" />
     <ClInclude Include="dll.h" />
     <ClInclude Include="rapidxml.hpp" />
     <ClInclude Include="rapidxml_iterators.hpp" />
@@ -130,6 +131,7 @@
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\CommandLine\XmlHelpers.cpp" />
     <ClCompile Include="ContextMenuHandler.cpp" />
     <ClCompile Include="Dll.cpp" />
     <ClCompile Include="RegisterExtension.cpp" />
