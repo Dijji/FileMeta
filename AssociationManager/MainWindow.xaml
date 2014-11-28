@@ -34,7 +34,8 @@
                 <TextBlock x:Uid="TextBlock_9" Text="2." FontSize="12" Margin="5,0,0,0"/>
                 <TextBlock x:Uid="TextBlock_10" Text="Choose a profile of editable properties:" FontSize="12" Width="175" Margin="5,0,0,0" TextWrapping="Wrap"/>
             </StackPanel>
-            <ComboBox x:Uid="comboProfile" Grid.Row="2" Height="23" Name="comboProfile" Width="120" FontSize="12" HorizontalAlignment="Center" ItemsSource="{Binding Path=Profiles}" SelectionChanged="comboProfile_SelectionChanged" >
+            <ComboBox x:Uid="comboProfile" Grid.Row="2" Height="23" Name="comboProfile" Width="120" FontSize="12" HorizontalAlignment="Center"
+                      IsEnabled="{Binding Path=CanChooseProfile}" ItemsSource="{Binding Path=Profiles}" SelectionChanged="comboProfile_SelectionChanged" >
                 <ComboBox.ItemTemplate>
                     <DataTemplate x:Uid="DataTemplate_2">
                         <TextBlock x:Uid="TextBlock_2" Text="{Binding Path=Name}" />
