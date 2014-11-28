@@ -19,6 +19,13 @@ namespace FileMetadataAssociationManager
         private List<Extension> selectedExtensions = new List<Extension>();
         private Profile selectedProfile = null;
         private ObservableCollection<Profile> profiles = new ObservableCollection<Profile>();
+        private enum HandlerSet
+        {
+            None,
+            Ours,
+            Other,
+        }
+        private HandlerSet? selectedHandlers;
 
         public ObservableCollectionWithReset<Extension> Extensions { get { return extensions; } }
         public ObservableCollection<Profile> Profiles { get { return profiles; } }
@@ -32,37 +39,77 @@ namespace FileMetadataAssociationManager
             foreach (var s in selections)
                 SelectedExtensions.Add((Extension)s);
 
-            Profile p = null;
+            // Cases are:
+            // 1. All selected extensions have no handler: profile combo box is enabled and profile property lists are shown. 
+            // 2. All selected extensions have File Meta handler: profile combo box is disabled and profile for the 
+            //    first selected extension is shown in combo box and profile property lists. 
+            // 3. All other cases: profile combo box is disabled and profile property lists are empty.
+            selectedHandlers = null;
             foreach (Extension e in SelectedExtensions)
             {
-                Profile q = e.GetCurrentProfileIfKnown();
-                if (q != null)
+                if (!e.HasHandler)
                 {
-                    if (p == null)
-                        p = q;
-                    else if (p != q)
+                    if (selectedHandlers == null)
+                        selectedHandlers = HandlerSet.None;
+                    else if (selectedHandlers == HandlerSet.None)
+                        continue;
+                    else
                     {
-                        p = null;
+                        selectedHandlers = HandlerSet.Other;
                         break;
                     }
                 }
+                else if (e.OurHandler)
+                {
+                    if (selectedHandlers == null)
+                        selectedHandlers = HandlerSet.Ours;
+                    else if (selectedHandlers == HandlerSet.Ours)
+                        continue;
+                    else
+                    {
+                        selectedHandlers = HandlerSet.Other;
+                        break;
+                    }
+                }
+                else
+                {
+                    selectedHandlers = HandlerSet.Other;
+                    break;
+                }
             }
-            if (p != null)
-                SelectedProfile = p;
+            if (selectedHandlers == null)
+                selectedHandlers = HandlerSet.Other;
 
+            switch (selectedHandlers)
+            {
+                case HandlerSet.None:
+                    if (SelectedProfile == null)
+                        SelectedProfile = Profiles.First();
+                    break;
+                case HandlerSet.Ours:
+                    SelectedProfile = SelectedExtensions.First().GetCurrentProfileIfKnown();
+                    break;
+                case HandlerSet.Other:
+                    SelectedProfile = null;
+                    break;
+            }
+
+            OnPropertyChanged("CanChooseProfile");
             OnPropertyChanged("CanAddPropertyHandlerEtc");
             OnPropertyChanged("CanRemovePropertyHandlerEtc");
         }
+
+        public bool CanChooseProfile { get { return selectedHandlers == HandlerSet.None; } }
 
         public bool CanAddPropertyHandlerEtc
         {
             get
             {
                 return Extension.IsOurPropertyHandlerRegistered && SelectedProfile != null &&
-                    selectedExtensions.Where(e => e.HasHandler).Count() == 0;
+                       selectedHandlers == HandlerSet.None;
             }
         }
-        public bool CanRemovePropertyHandlerEtc { get { return selectedExtensions.Where(e => !e.OurHandler).Count() == 0; } }
+        public bool CanRemovePropertyHandlerEtc { get { return selectedHandlers == HandlerSet.Ours; } }
 
         public string Restrictions
         {
