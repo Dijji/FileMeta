@@ -11,6 +11,10 @@ Project("{930C7802-8A8C-48F9-8165-68863BCCD9DD}") = "Setup", "Setup\Setup.wixpro
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CommandLine", "CommandLine\FileMeta.vcxproj", "{8E86EBF1-8B1F-4035-A21B-3A566FF04C7F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GongSolutions.Wpf.DragDrop (NET35)", "GongSolutions.Wpf.DragDrop\GongSolutions.Wpf.DragDrop (NET35).csproj", "{0C6674CC-6D49-414A-9B41-D4E175028FFB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{04B76814-BD15-451D-9E11-0365A92457B0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -59,6 +63,12 @@ Global
 		{8E86EBF1-8B1F-4035-A21B-3A566FF04C7F}.Release|x64.Build.0 = Release|x64
 		{8E86EBF1-8B1F-4035-A21B-3A566FF04C7F}.Release|x86.ActiveCfg = Release|Win32
 		{8E86EBF1-8B1F-4035-A21B-3A566FF04C7F}.Release|x86.Build.0 = Release|Win32
+		{0C6674CC-6D49-414A-9B41-D4E175028FFB}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{0C6674CC-6D49-414A-9B41-D4E175028FFB}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{0C6674CC-6D49-414A-9B41-D4E175028FFB}.Release|x64.ActiveCfg = Release|Any CPU
+		{0C6674CC-6D49-414A-9B41-D4E175028FFB}.Release|x64.Build.0 = Release|Any CPU
+		{0C6674CC-6D49-414A-9B41-D4E175028FFB}.Release|x86.ActiveCfg = Release|Any CPU
+		{0C6674CC-6D49-414A-9B41-D4E175028FFB}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
