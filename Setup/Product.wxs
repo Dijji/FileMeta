@@ -6,7 +6,7 @@ Also thanks to Alek Davis for the 32/64-bit strategy: http://alekdavis.blogspot.
 -->
 
 <?define ProductName = "File Metadata" ?>
-<?define ProductVersion = "1.2" ?>
+<?define ProductVersion = "1.3" ?>
 
 <?if $(var.Platform) = x64 ?>
 <?define ProductDisplayName = "$(var.ProductName) 64-bit" ?>
@@ -32,7 +32,7 @@ Also thanks to Alek Davis for the 32/64-bit strategy: http://alekdavis.blogspot.
 
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
 	<Product Id="$(var.ProductId)" Name="$(var.ProductDisplayName) (v$(var.ProductVersion))"
-           Language="1033" Version="1.2.5235.0" Manufacturer="Dijji" UpgradeCode="$(var.ProductUpgradeCode)">
+           Language="1033" Version="1.3.5729.0" Manufacturer="Dijji" UpgradeCode="$(var.ProductUpgradeCode)">
 		<Package InstallerVersion="400" Compressed="yes" InstallScope="perMachine" />
     <Condition Message="[ProductName] is for Windows Vista, Windows Server 2008, or higher.">
       <![CDATA[Installed OR (VersionNT >= 600)]]>
@@ -41,8 +41,9 @@ Also thanks to Alek Davis for the 32/64-bit strategy: http://alekdavis.blogspot.
       Privileged
     </Condition>
     <PropertyRef Id="NETFRAMEWORK35"/>
+    <PropertyRef Id="NETFRAMEWORK40FULL"/>
     <Condition Message='[ProductName] requires .NET Framework 3.5 or later to be installed.'>
-      <![CDATA[Installed OR NETFRAMEWORK35]]>
+      <![CDATA[Installed OR NETFRAMEWORK35 OR NETFRAMEWORK40FULL]]>
     </Condition>
 
     <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
@@ -106,6 +107,10 @@ Also thanks to Alek Davis for the 32/64-bit strategy: http://alekdavis.blogspot.
     <ComponentGroup Id="COMP_AssociationManager">
       <Component Id="COMP_FileAssociationManager"  Directory="INSTALLFOLDER" Guid="8F8E44D9-D54E-44C7-9D89-B4222A8EFCC0">
         <File KeyPath="yes" Source="$(var.FileMetaAssociationManager.TargetPath)" />
+        <File Source="$(var.FileMetaAssociationManager.TargetPath).config" />
+      </Component>
+      <Component KeyPath="yes" Id="COMP_DragDrop"  Directory="INSTALLFOLDER" Guid="A0BADB13-7C51-44B8-9F50-F15F89852D7D">
+        <File Source="$(var.FileMetaAssociationManager.TargetDir)GongSolutions.Wpf.DragDrop.dll" />
       </Component>
       <!-- for future locaization 
       <Component Id="COMP_enUSResources"  Directory="enUSResources" Guid="DFF3A865-AEC7-4042-9E19-03214C9B3753">
