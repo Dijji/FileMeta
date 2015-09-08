@@ -239,7 +239,7 @@ int wmain(int argc, WCHAR* argv[])
 							wmemcpy(content, e.where<WCHAR>(), size);
 							content[MAX_ERRLENGTH] = L'\0';  // ensure termination
 
-							CPHException cphe = CPHException(ERROR_XML_PARSE_ERROR, E_FAIL, IDS_E_XML_PARSE_ERROR_2, error, content);
+							CPHException cphe = CPHException(ERROR_XML_PARSE_ERROR, E_FAIL, IDS_E_XML_PARSE_ERROR_3, error, content, xmlFile.c_str());
 							delete [] error;
 							throw cphe;
 						}
