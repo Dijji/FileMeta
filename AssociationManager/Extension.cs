@@ -23,6 +23,7 @@ namespace FileMetadataAssociationManager
 
         const string FullDetailsValueName = "FullDetails";
         const string PreviewDetailsValueName = "PreviewDetails";
+        const string FileMetaCustomProfileValueName = "FileMetaCustomProfile";
         const string ShellExKeyName = "ShellEx";
         const string ContextMenuHandlersKeyName = "ContextMenuHandlers";
         const string ContextHandlerKeyName = "FileMetadata";
@@ -32,14 +33,14 @@ namespace FileMetadataAssociationManager
         private static Nullable<bool> isOurPropertyHandlerRegistered = null;
         private static Nullable<bool> isOurContextHandlerRegistered = null;
 
+        private Profile profile = null;  // The profile currently applied to this extension, if any
 
         public string Name { get; set; }
         public State State { get; set; }
+        public Profile Profile { get { return profile; } set { profile = value; } }
         public FontWeight Weight { get { return OurHandler ? FontWeights.ExtraBold : (ForeignHandler ? FontWeights.ExtraLight : FontWeights.Normal); } }
         public string PropertyHandlerGuid { get { return propertyHandlerGuid; } }
         public string PropertyHandlerTitle { get { return propertyHandlerTitle; } }
-        public bool CanAddPropertyHandlerEtc { get { return IsOurPropertyHandlerRegistered && propertyHandlerGuid == null && State.SelectedProfile != null; } }
-        public bool CanRemovePropertyHandlerEtc { get { return OurHandler; } }
         public string PropertyHandlerNow 
         {
             get 
@@ -102,12 +103,15 @@ namespace FileMetadataAssociationManager
 
             OnPropertyChanged("PropertyHandlerTitle");
             OnPropertyChanged("PropertyHandlerNow");
-            OnPropertyChanged("Style");
             OnPropertyChanged("Weight");
-            OnPropertyChanged("CanAddPropertyHandlerEtc");
-            OnPropertyChanged("CanRemovePropertyHandlerEtc");
+        }
+
+        public void IdentifyCurrentProfile()
+        {
+            Profile = GetCurrentProfileIfKnown();
         }
        
+        // Setup the registry entries required when an extension is given our handler
         public bool SetupHandlerForExtension(Profile profile)
         {
             if (ForeignHandler || OurHandler)
@@ -158,6 +162,55 @@ namespace FileMetadataAssociationManager
             var handler = handlers.CreateSubKey(Name);
             handler.SetValue(null, OurPropertyHandlerGuid);
             this.RecordPropertyHandler(OurPropertyHandlerGuid, OurPropertyHandlerTitle);
+            this.Profile = profile;
+            State.HasChanged = true;
+
+            return true;
+        }
+
+        // Update the registry settings for an extension when the Full details or Preview details in a profile are changed
+        public bool UpdateProfileSettingsForExtension(Profile profile)
+        {
+            if (!OurHandler)
+                return false;
+
+            if (!IsElevated)
+                return false;
+
+            // Find the key for the extension in HKEY_CLASSES_ROOT
+            var ext = Registry.ClassesRoot.OpenSubKey(Name, false);
+            if (ext == null)
+                return false;
+
+            string progid = (string)ext.GetValue(null);
+
+            string targetName;
+            RegistryKey target;
+            if (progid != null && progid.Length > 0)
+                targetName = progid;
+            else
+                targetName = Name;
+
+            try
+            {
+                target = Registry.ClassesRoot.OpenSubKey(targetName, true);
+            }
+            catch (System.Security.SecurityException e)
+            {
+                MessageBox.Show(String.Format(LocalizedMessages.NoRegistryPermission, targetName), LocalizedMessages.ProfileError);
+                return false;
+            }
+
+            if (!SetupProfileDetailEntries(target, profile))
+                return false;
+
+            // Sometimes, the details don't seem to get picked up from ProgID, so put the same stuff in what is supposed to be a lower priority location
+            // to catch some more cases
+            var assoc = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Classes\SystemFileAssociations", true);
+            target = assoc.CreateSubKey(Name);
+
+            if (!SetupProfileDetailEntries(target, profile))
+                return false;
 
             return true;
         }
@@ -167,8 +220,7 @@ namespace FileMetadataAssociationManager
             if (target == null)
                 return false;
 
-            target.SetValue(FullDetailsValueName, profile.FullDetailsString);
-            target.SetValue(PreviewDetailsValueName, profile.PreviewDetailsString);
+            SetupProfileDetailEntries(target, profile);
 
             // Set up the eontext handler, if registered
             if (IsOurContextHandlerRegistered)
@@ -182,7 +234,23 @@ namespace FileMetadataAssociationManager
             return true;
         }
 
-        public Profile GetCurrentProfileIfKnown()
+        private bool SetupProfileDetailEntries(RegistryKey target, Profile profile)
+        {
+            if (target == null)
+                return false;
+
+            // Update the full and preview details keys
+            target.SetValue(FullDetailsValueName, profile.FullDetailsString);
+            target.SetValue(PreviewDetailsValueName, profile.PreviewDetailsString);
+
+            // If this is a custom profile, update our private key that records its name
+            if (!profile.IsReadOnly)
+                target.SetValue(FileMetaCustomProfileValueName, profile.Name);
+
+            return true;
+        }
+
+        private Profile GetCurrentProfileIfKnown()
         {
             if (!OurHandler)
                 return null;
@@ -203,16 +271,17 @@ namespace FileMetadataAssociationManager
             if (target == null)
                 return null;
 
-            // Look for PreviewDetails
+            // Try to identify the profile
             string pd = (string) target.GetValue(PreviewDetailsValueName);
-            if (pd != null)
-            {
-                foreach (Profile p in State.Profiles)
-                {
-                    if (p.PreviewDetailsString == pd)
-                        return p;
-                }
-            }
+            string cp = (string)target.GetValue(FileMetaCustomProfileValueName);
+
+            // If our private key recording the custom profile used is present, go with that
+            if (cp != null)
+                return State.CustomProfiles.Where(p => p.Name == cp).FirstOrDefault();
+
+            // Otherwise, tried to match the preview details against one of the built-in values
+            else if (pd != null)
+                return State.BuiltInProfiles.Where(p => p.PreviewDetailsString == pd).FirstOrDefault();
 
             return null;
         }
@@ -264,6 +333,8 @@ namespace FileMetadataAssociationManager
             if (handlers != null)
                 handlers.DeleteSubKey(Name);
             this.RecordPropertyHandler(null, null);
+            this.Profile = null;
+            State.HasChanged = true;
         }
 
         private void RemoveProgidRegistryEntries(RegistryKey target)
@@ -274,6 +345,7 @@ namespace FileMetadataAssociationManager
 
             target.DeleteValue(FullDetailsValueName, false);
             target.DeleteValue(PreviewDetailsValueName, false);
+            target.DeleteValue(FileMetaCustomProfileValueName, false);
 
             // Always have a go at removing the context handler setup, even if the handler is not registered
             // There might be entries lying around from when it was
@@ -314,7 +386,5 @@ namespace FileMetadataAssociationManager
                 PropertyChanged(this, new PropertyChangedEventArgs(info));
             }
         }
-
-
     }
 }

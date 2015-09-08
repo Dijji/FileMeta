@@ -3,13 +3,13 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.ComponentModel;
 using FileMetadataAssociationManager.Resources;
-
 
 namespace FileMetadataAssociationManager
 {
@@ -19,14 +19,18 @@ namespace FileMetadataAssociationManager
     public partial class MainWindow : Window
     {
         private State state = new State();
+        private MainView view;
         
         public MainWindow()
         {
             InitializeComponent();
-            this.DataContext = state;
+
+            view = new MainView(this, state);
+            this.DataContext = view;
+            view.PropertyChanged += new PropertyChangedEventHandler(view_PropertyChanged);
+
             state.Populate();
-            state.PropertyChanged += new PropertyChangedEventHandler(state_PropertyChanged);
-        }
+         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
@@ -37,39 +41,74 @@ namespace FileMetadataAssociationManager
                 comboProfile.SelectedItem = comboProfile.Items[0];
         }
 
+        private void Window_Closing(object sender, CancelEventArgs e)
+        {
+            // If there have been changes to registry settings, offer to restart Explorer
+            if (state.HasChanged)
+            {
+                var result = MessageBox.Show(LocalizedMessages.RestartExplorerNow, LocalizedMessages.ClosingWithChanges, MessageBoxButton.YesNoCancel);
+
+                if (result == MessageBoxResult.No)
+                    return;
+                else if (result == MessageBoxResult.Cancel)
+                {
+                    e.Cancel = true;
+                    return;
+                }
+                else
+                {
+                    // Yes. Kill all existing instances of Explorer
+                    bool failed = false;
+                    try
+                    {
+                        foreach (Process p in Process.GetProcessesByName("explorer"))
+                        {
+                            p.Kill();
+                            p.WaitForExit(); // possibly with a timeout
+                        }
+                    }
+                    catch (System.Exception ex)
+                    {
+                        failed = true;
+                    }
+
+                    // If that worked, start up a new instance so that at least the desktop is available
+                    if (!failed)
+                    {
+                        Process p = new Process();
+                        p.StartInfo.UseShellExecute = false;
+                        p.StartInfo.FileName = Environment.GetEnvironmentVariable("SystemRoot") + @"\explorer.exe";
+                        p.Start();
+                    }
+                }
+            }
+        }
+
         private void listExtensions_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             ListView lv = (ListView)sender;
-            state.SetSelectedExtensions(lv.SelectedItems);
+            view.SetSelectedExtensions(lv.SelectedItems);
          }
 
         private void comboProfile_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             ComboBox cb = (ComboBox)sender;
-            state.SelectedProfile = (Profile)cb.SelectedItem;
+            view.SelectedProfile = (Profile)cb.SelectedItem;
         }
 
-        private void state_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        private void view_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             // Ensure that the profile combo box reflects the current selection
             if (e.PropertyName == "SelectedProfile")
             {
-                if (state.SelectedProfile != comboProfile.SelectedItem)
-                    comboProfile.SelectedItem = state.SelectedProfile;
+                if (view.SelectedProfile != comboProfile.SelectedItem)
+                    comboProfile.SelectedItem = view.SelectedProfile;
             }
         }
 
         private void addHandler_Click(object sender, RoutedEventArgs e)
         {
-            bool success = true;
-
-            if (state.SelectedExtensions.Count > 0 && state.SelectedProfile != null)
-            {
-                foreach (Extension ext in state.SelectedExtensions)
-                {
-                    success &= ext.SetupHandlerForExtension(state.SelectedProfile);
-                }
-            }
+            bool success = view.AddHandlers();
 
             if (!success)
                 MessageBox.Show(LocalizedMessages.HandlerSetupIssues);
@@ -77,18 +116,29 @@ namespace FileMetadataAssociationManager
 
         private void removeHandler_Click(object sender, RoutedEventArgs e)
         {
-            foreach (Extension ext in state.SelectedExtensions)
-            {
-                ext.RemoveHandlerFromExtension();
-            } 
+            view.RemoveHandlers();
         }
 
         private void refresh_Click(object sender, RoutedEventArgs e)
         {
-            Extension currentSelection = (Extension) listExtensions.SelectedItem;
+            // Re-sort the handlers, while maintaining the current selections
+            List<Extension> currentSelections = new List<Extension>(listExtensions.SelectedItems.Cast<Extension>());
             state.SortExtensions();
-            listExtensions.SelectedItem = currentSelection;
-            listExtensions.ScrollIntoView(currentSelection);
+            foreach (var sel in currentSelections)
+                listExtensions.SelectedItems.Add(sel);
+            listExtensions.ScrollIntoView(currentSelections.FirstOrDefault());
+            view.SortRequired = false;
+        }
+
+        private void profiles_Click(object sender, RoutedEventArgs e)
+        {
+            // Open the custom profiles dialog
+            state.SelectedProfile = view.SelectedProfile;
+            var w = new ProfilesWindow(state);
+            w.Owner = this;
+            w.ShowDialog();
+            view.RefreshProfiles();
+            view.SelectedProfile = state.SelectedProfile;
         }
     }
 }
