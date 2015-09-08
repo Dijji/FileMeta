@@ -5,7 +5,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:scm="clr-namespace:System.ComponentModel;assembly=WindowsBase"
         xmlns:dat="clr-namespace:System.Windows.Data;assembly=PresentationFramework"
-        Title="File Meta Association Manager" Height="800" Width="1000" FontSize="12" Loaded="Window_Loaded" Icon="/FileMetaAssociationManager;component/Resources/tag.ico">
+        Title="File Meta Association Manager" Height="800" Width="1000" FontSize="12" Loaded="Window_Loaded" 
+        Icon="/FileMetaAssociationManager;component/Resources/tag.ico" Closing="Window_Closing" WindowStartupLocation="CenterScreen">
     <Window.Resources>
         <Style x:Uid="Style_1" TargetType="TextBlock" x:Key="ColorByRestriction">
             <Style.Triggers>
@@ -17,6 +18,7 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
+        <BooleanToVisibilityConverter x:Uid="BooleanToVisibilityConverter_1" x:Key="TrueToVisibleConverter"/>
     </Window.Resources>
     <Grid x:Uid="Grid_1">
         <Grid.ColumnDefinitions>
@@ -51,20 +53,26 @@
             </StackPanel>
             <TextBlock x:Uid="TextBlock_15" Text="2." FontSize="12" Margin="5,10,0,5"/>
             <Button x:Uid="removeHandler" Content="Remove File Meta Handler" Height="23" Name="removeHandler" Margin="10,0,15,0" FontSize="12" Click="removeHandler_Click" IsEnabled="{Binding Path=CanRemovePropertyHandlerEtc}" />
+            <TextBlock x:Uid="TextBlock_18" Text="To manage custom profiles:" TextWrapping="Wrap" FontSize="12" FontWeight="Bold" Margin="5,60,0,10"/>
+            <Button x:Uid="advanced" Content="Custom Profiles..." Height="23" Name="profiles" Margin="10,0,15,0" FontSize="12" Click="profiles_Click"  />
             <TextBlock x:Uid="Label_3" Text="{Binding Path=Restrictions}" TextWrapping="Wrap" Margin="5,90,0,0" FontSize="12" Style="{StaticResource ColorByRestriction}" />
         </StackPanel>
         <Grid x:Uid="Grid_2" Grid.Column="1">
             <Grid.RowDefinitions>
                 <RowDefinition x:Uid="RowDefinition_1" Height="25"/>
+                <RowDefinition x:Uid="RowDefinition_5" Height="25"/>
                 <RowDefinition x:Uid="RowDefinition_2"/>
             </Grid.RowDefinitions>
             <Grid x:Uid="Grid_9" Grid.Row="0" >
                 <Label x:Uid="Label_1" Content="File Extensions:"  FontSize="12" VerticalAlignment="Bottom" HorizontalAlignment="Center"/>
-                <!--<Button x:Uid="refresh" Name="refresh" Width="20" Height="20" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,20,0" Click="refresh_Click">
+             </Grid>
+            <Grid x:Uid="Grid_10" Grid.Row="1" >
+                <Button x:Uid="refresh" Name="refresh" Width="20" Height="20" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,0,0" 
+                        Click="refresh_Click" Visibility="{Binding SortRequired, Converter={StaticResource TrueToVisibleConverter}}">
                     <Image x:Uid="Image_1" Source="/FileMetaAssociationManager;component/Resources/refresh.ico" />
-                </Button>-->
+                </Button>
             </Grid>
-            <ListView x:Uid="listExtensions" Grid.Row="1"  Name="listExtensions" Margin="0,25,0,0" ItemsSource="{Binding Path=Extensions}"
+            <ListView x:Uid="listExtensions" Grid.Row="2"  Name="listExtensions" Margin="0,0,0,0" ItemsSource="{Binding Path=Extensions}"
                       FontSize="12" SelectionChanged="listExtensions_SelectionChanged" Foreground="Black" TextSearch.TextPath="Name">
                 <ListView.View>
                     <GridView x:Uid="GridView_1">
@@ -89,7 +97,7 @@
         <Grid x:Uid="Grid_3" Grid.Column="2">
             <Grid.RowDefinitions>
                 <RowDefinition x:Uid="RowDefinition_3" Height="25"/>
-                <RowDefinition x:Uid="RowDefinition_5" Height="25"/>
+                <RowDefinition x:Uid="RowDefinition_7" Height="25"/>
                 <RowDefinition x:Uid="RowDefinition_6"/>
             </Grid.RowDefinitions>
             <Grid x:Uid="Grid_4" Grid.Row="0">

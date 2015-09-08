@@ -1,0 +1,206 @@
+﻿<!--// Copyright (c) 2015, Dijji, and released under Ms-PL.  This, with other relevant licenses, can be found in the root of this distribution.
+-->
+<Window x:Uid="Window_1" x:Class="FileMetadataAssociationManager.ProfilesWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:dd="clr-namespace:GongSolutions.Wpf.DragDrop;assembly=GongSolutions.Wpf.DragDrop"
+        Title="Custom Profile Definition" Height="800" Width="1000" FontSize="12" WindowStartupLocation="CenterOwner" Closing="Window_Closing">
+    <Window.Resources>
+        <RoutedUICommand x:Uid="RoutedUICommand_1" x:Key="Clone" Text="Clone" />
+        <RoutedUICommand x:Uid="RoutedUICommand_2" x:Key="Rename" Text="Rename" />
+        <RoutedUICommand x:Uid="RoutedUICommand_3" x:Key="ToggleEdit" Text="TE" />
+        <ContextMenu x:Uid="ContextMenu_1" x:Key="ProfilesContextMenu">
+            <MenuItem  x:Uid="MenuItem_1" Header="New Profile" Command="New" />
+            <MenuItem  x:Uid="MenuItem_2" Header="Clone" Command="{StaticResource Clone}" />
+            <MenuItem  x:Uid="MenuItem_3" Header="Delete" Command="Delete"  />
+            <MenuItem  x:Uid="MenuItem_4" Header="Rename" Command="{StaticResource Rename}" InputGestureText="F2" />
+        </ContextMenu>
+        <ContextMenu x:Uid="ContextMenu_2" x:Key="DetailsContextMenu">
+            <MenuItem  x:Uid="MenuItem_5" Header="Remove" Command="Delete"  />
+        </ContextMenu>
+        <Style x:Uid="Style_3" x:Key="EditableTreeViewTextBox" TargetType="{x:Type TextBox}">
+            <Style.Triggers>
+                <MultiDataTrigger x:Uid="MultiDataTrigger_1" >
+                    <MultiDataTrigger.Conditions>
+                        <Condition x:Uid="Condition_1" Binding="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type TreeViewItem}}, Path=IsSelected}"  Value="true"/>
+                        <Condition x:Uid="Condition_2" Binding="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type TreeView}}, Path=DataContext.IsInTreeTextBoxEditMode}"  Value="true"/>
+                    </MultiDataTrigger.Conditions>
+                    <Setter x:Uid="Setter_4" Property="Visibility" Value="Visible"/>
+                </MultiDataTrigger>
+                <DataTrigger x:Uid="DataTrigger_1" Binding="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type TreeViewItem}}, Path=IsSelected}" Value="false">
+                    <Setter x:Uid="Setter_5" Property="Visibility" Value="Collapsed"/>
+                </DataTrigger>
+                <DataTrigger x:Uid="DataTrigger_2" Binding="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type TreeView}}, Path=DataContext.IsInTreeTextBoxEditMode}" Value="false">
+                    <Setter x:Uid="Setter_6" Property="Visibility" Value="Collapsed"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+    <Grid x:Uid="Grid_1">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition x:Uid="ColumnDefinition_1" Width="2*"/>
+            <ColumnDefinition x:Uid="ColumnDefinition_2" Width="2*"/>
+            <ColumnDefinition x:Uid="ColumnDefinition_9" Width="5*"/>
+        </Grid.ColumnDefinitions>
+        <Grid x:Uid="Grid_2" Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition x:Uid="RowDefinition_1" Height="30"/>
+                <RowDefinition x:Uid="RowDefinition_8" Height="1*"/>
+                <RowDefinition x:Uid="RowDefinition_9" Height="30"/>
+                <RowDefinition x:Uid="RowDefinition_2" Height="4 *"/>
+            </Grid.RowDefinitions>
+            <Label x:Uid="Label_5" Grid.Row="0" Content="Property Groups" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="12"/>
+            <ListBox x:Uid="listPropGroup" Grid.Row="1" Name="listPropGroup" Margin="0,0,10,0" ItemsSource="{Binding Path=GroupProperties}" FontSize="12"
+                     dd:DragDrop.IsDragSource="True">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:Uid="DataTemplate_4">
+                        <TextBlock x:Uid="TextBlock_6" Text="{Binding Path=.}" />
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+            <Label x:Uid="Label_8" Grid.Row="2" Content="Properties" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="12"/>
+            <TreeView x:Uid="treeAllProperties" Grid.Row="3" Margin="0,0,10,0" Name="treeAllProperties"  ItemsSource="{Binding Path=AllProperties}" FontSize="12"
+                      dd:DragDrop.IsDragSource="True">
+                <TreeView.ItemTemplate>
+                    <HierarchicalDataTemplate x:Uid="HierarchicalDataTemplate_1" ItemsSource="{Binding Path=Children}">
+                        <Grid x:Uid="Grid_7">
+                            <TextBlock x:Uid="TextBlock_3" Text="{Binding Path=Name}" />
+                        </Grid>
+                    </HierarchicalDataTemplate>
+                </TreeView.ItemTemplate>
+            </TreeView>
+        </Grid>
+        <Grid x:Uid="Grid_3" Grid.Column="2">
+            <Grid.RowDefinitions>
+
+                <RowDefinition x:Uid="RowDefinition_5" Height="30"/>
+                <RowDefinition x:Uid="RowDefinition_6"/>
+                <RowDefinition x:Uid="RowDefinition_7" Height="40"/>
+            </Grid.RowDefinitions>
+
+            <Grid x:Uid="Grid_5" Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition x:Uid="ColumnDefinition_3" Width="20"/>
+                    <ColumnDefinition x:Uid="ColumnDefinition_4" Width="1*"/>
+                    <ColumnDefinition x:Uid="ColumnDefinition_5" Width="20"/>
+                    <ColumnDefinition x:Uid="ColumnDefinition_10" Width="1*"/>
+                </Grid.ColumnDefinitions>
+                 <Label x:Uid="Label_6" Grid.Column="1" Content="Full details" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="12"/>
+                <Label x:Uid="Label_7" Grid.Column="3" Content="Preview Panel" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="12"/>
+            </Grid>
+            <Grid x:Uid="Grid_6" Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition x:Uid="ColumnDefinition_6" Width="20"/>
+                    <ColumnDefinition x:Uid="ColumnDefinition_7" Width="1*"/>
+                    <ColumnDefinition x:Uid="ColumnDefinition_8" Width="20"/>
+                    <ColumnDefinition x:Uid="ColumnDefinition_11" Width="1*"/>
+                </Grid.ColumnDefinitions>
+                <Grid  x:Uid="Grid_11" Grid.Column="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition x:Uid="RowDefinition_10" Height="1*"/>
+                    </Grid.RowDefinitions>
+                    <Button x:Uid="addToDetails" Grid.Row="0" Name="addToDetails" Margin="0,20,0,20" Width="20" Height="30" Content="&gt;" FontSize="14" FontWeight="ExtraBold" Click="useDragDrop_Click"/>
+                </Grid>
+                <TreeView x:Uid="treeFullDetails" Grid.Column="1" Name="treeFullDetails" Margin="10,0,10,0"
+                          ItemsSource="{Binding Path=FullDetails}" FontSize="12" ContextMenu="{StaticResource DetailsContextMenu}"
+                          dd:DragDrop.IsDragSource="True" dd:DragDrop.IsDropTarget="True" dd:DragDrop.DropHandler="{Binding}">
+                    <TreeView.InputBindings>
+                        <KeyBinding x:Uid="KeyBinding_1" Command="Delete" Gesture="Del" CommandParameter="Keystroke"/>
+                    </TreeView.InputBindings>
+                    <TreeView.CommandBindings>
+                        <CommandBinding x:Uid="CommandBinding_1" Command="Delete" CanExecute="RemoveFullDetails_CanExecute" Executed="RemoveFullDetails_Executed"/>
+                    </TreeView.CommandBindings>
+                    <TreeView.ItemTemplate>
+                        <HierarchicalDataTemplate x:Uid="HierarchicalDataTemplate_2" ItemsSource="{Binding Path=Children}">
+                            <Grid x:Uid="Grid_8">
+                                <TextBlock x:Uid="TextBlock_4" Text="{Binding Path=Name}" />
+                            </Grid>
+                        </HierarchicalDataTemplate>
+                    </TreeView.ItemTemplate>
+                    <TreeView.ItemContainerStyle>
+                        <Style x:Uid="Style_2"  TargetType="{x:Type TreeViewItem}">
+                            <Setter x:Uid="Setter_7" Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
+                            <Setter x:Uid="Setter_3" Property="IsExpanded" Value="true"/>
+                        </Style>
+                    </TreeView.ItemContainerStyle>
+                </TreeView>
+                <Grid  x:Uid="Grid_12" Grid.Column="2">
+                    <Grid.RowDefinitions>
+                        <RowDefinition x:Uid="RowDefinition_11" Height="1*"/>
+                    </Grid.RowDefinitions>
+                    <Button x:Uid="addToPreview" Grid.Row="0" Name="addToPreview" Margin="0,20,0,20" Width="20" Height="30" Content="&gt;" FontSize="14" FontWeight="ExtraBold" Click="useDragDrop_Click"/>
+                </Grid>
+                <ListBox x:Uid="listPreviewDetails" Grid.Column="3" Name="listPreviewDetails" Margin="10,0,10,0" 
+                         ItemsSource="{Binding Path=PreviewDetails}" FontSize="12" ContextMenu="{StaticResource DetailsContextMenu}"
+                         dd:DragDrop.IsDragSource="True" dd:DragDrop.IsDropTarget="True" dd:DragDrop.DropHandler="{Binding}">
+                    <ListBox.InputBindings>
+                        <KeyBinding x:Uid="KeyBinding_2" Command="Delete" Gesture="Del" CommandParameter="Keystroke"/>
+                    </ListBox.InputBindings>
+                    <ListBox.CommandBindings>
+                        <CommandBinding x:Uid="CommandBinding_2" Command="Delete" CanExecute="RemovePreviewDetails_CanExecute" Executed="RemovePreviewDetails_Executed"/>
+                    </ListBox.CommandBindings>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:Uid="DataTemplate_3">
+                            <TextBlock x:Uid="TextBlock_5" Text="{Binding Path=.}" />
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+            <Grid x:Uid="Grid_10" Grid.Row="2">
+                <StackPanel x:Uid="StackPanel_1" Orientation="Horizontal" FlowDirection="RightToLeft">
+                    <Button x:Uid="cbApply" Content="Apply" Height="23" Width="70" Name="cbApply" Margin="20,3,0,0" FontSize="12" Click="cbApply_Click" 
+                            IsEnabled="{Binding Path=IsDirty}"/>
+                    <Button x:Uid="cbCancel" Content="Cancel" Height="23" Width="70" Name="cbCancel" Margin="20,3,0,0" FontSize="12" Click="cbCancel_Click" />
+                    <Button x:Uid="cbOK" Content="OK" Height="23" Width="70" Name="cbOK" Margin="20,3,0,0" FontSize="12" Click="cbOK_Click" />
+                </StackPanel>
+            </Grid>
+        </Grid>
+        <Grid x:Uid="Grid_13" Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition x:Uid="RowDefinition_12" Height="30"/>
+                <RowDefinition x:Uid="RowDefinition_13"/>
+            </Grid.RowDefinitions>
+            <Label x:Uid="Label_9" Grid.Row="0" Content="Profiles" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="12"/>
+            <TreeView x:Uid="treeProfiles" Grid.Row="1" Margin="0,0,10,0" Name="treeProfiles"  ItemsSource="{Binding Path=ProfileTree}" FontSize="12"
+                      SelectedItemChanged="treeProfiles_SelectedItemChanged" ContextMenu="{StaticResource ProfilesContextMenu}">
+                <TreeView.InputBindings>
+                    <KeyBinding x:Uid="KeyBinding_3" Command="{StaticResource ToggleEdit}" Gesture="F2"  CommandParameter="Keystroke" />
+                    <KeyBinding x:Uid="KeyBinding_4" Command="{StaticResource ToggleEdit}" Gesture="Enter"  CommandParameter="Keystroke" />
+                    <KeyBinding x:Uid="KeyBinding_5" Command="New" Gesture="CTRL+N" CommandParameter="Keystroke"/>
+                    <KeyBinding x:Uid="KeyBinding_6" Command="Delete" Gesture="Del" CommandParameter="Keystroke"/>
+                </TreeView.InputBindings>
+                <TreeView.CommandBindings>
+                    <CommandBinding x:Uid="CommandBinding_3" Command="New" CanExecute="New_CanExecute" Executed="New_Executed"/>
+                    <CommandBinding x:Uid="CommandBinding_4" Command="{StaticResource Clone}" CanExecute="Clone_CanExecute" Executed="Clone_Executed"/>
+                    <CommandBinding x:Uid="CommandBinding_5" Command="Delete" CanExecute="Delete_CanExecute" Executed="Delete_Executed"/>
+                    <CommandBinding x:Uid="CommandBinding_6" Command="{StaticResource Rename}" CanExecute="Rename_CanExecute" Executed="Rename_Executed"/>
+                    <CommandBinding  x:Uid="CommandBinding_7" Command="{StaticResource ToggleEdit}" CanExecute="ToggleEdit_CanExecute" Executed="ToggleEdit_Executed"/>
+                </TreeView.CommandBindings>
+                <TreeView.ItemContainerStyle>
+                    <Style x:Uid="Style_4" TargetType="{x:Type TreeViewItem}">
+                        <Setter x:Uid="Setter_8" Property="ContextMenu" Value="{StaticResource ProfilesContextMenu}"/>
+                        <Setter x:Uid="Setter_9" Property="IsExpanded" Value="True"/>
+                        <Setter x:Uid="Setter_10" Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
+                        <Setter x:Uid="Setter_11" Property="FontWeight" Value="Normal" />
+                        <Style.Triggers>
+                            <Trigger x:Uid="Trigger_1" Property="IsSelected"
+                              Value="True">
+                                <Setter x:Uid="Setter_12" Property="FontWeight"
+                                    Value="Bold" />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </TreeView.ItemContainerStyle>
+                <TreeView.ItemTemplate>
+                    <HierarchicalDataTemplate x:Uid="HierarchicalDataTemplate_3" ItemsSource="{Binding Path=Children}">
+                        <Grid x:Uid="Grid_14">
+                            <TextBlock x:Uid="TextBlock_7" Text="{Binding Path=Name}" />
+                            <TextBox x:Uid="TextBox_1" Style="{StaticResource EditableTreeViewTextBox}" Text="{Binding Path=EditableName}" IsVisibleChanged="TextBox_IsVisibleChanged"/>
+                        </Grid>
+                    </HierarchicalDataTemplate>
+                </TreeView.ItemTemplate>
+            </TreeView>
+        </Grid>
+    </Grid>
+
+</Window>

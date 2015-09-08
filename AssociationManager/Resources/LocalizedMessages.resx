@@ -156,4 +156,58 @@
   <data name="ProfileError" xml:space="preserve">
     <value>Could not configure Profile</value>
   </data>
+  <data name="ProfileBuiltIn" xml:space="preserve">
+    <value>Built in</value>
+  </data>
+  <data name="ProfileCustom" xml:space="preserve">
+    <value>Custom</value>
+  </data>
+  <data name="NewProfileName" xml:space="preserve">
+    <value>New Profile</value>
+  </data>
+  <data name="RemovePropertyGroupHeader" xml:space="preserve">
+    <value>Remove Property Group</value>
+  </data>
+  <data name="RemovePropertyGroupQuestion" xml:space="preserve">
+    <value>Do you want to remove {0} and its contents from Full details and Preview Panel?</value>
+  </data>
+  <data name="RemovePropertyHeader" xml:space="preserve">
+    <value>Remove Property</value>
+  </data>
+  <data name="RemovePropertyQuestion" xml:space="preserve">
+    <value>Do you want to remove {0} from Full details and Preview Panel?</value>
+  </data>
+  <data name="UseDragDrop" xml:space="preserve">
+    <value>Use drag and drop to populate Full details and Preview Panel, and reorder their contents</value>
+  </data>
+  <data name="CannotDeleteProfile" xml:space="preserve">
+    <value>Cannot delete '{0}' as it is in use by at least one handler</value>
+  </data>
+  <data name="ProfileAlreadyExists" xml:space="preserve">
+    <value>A profile called '{0}' already exists</value>
+  </data>
+  <data name="ClosingWithChanges" xml:space="preserve">
+    <value>Closing with changes</value>
+  </data>
+  <data name="RestartExplorerNow" xml:space="preserve">
+    <value>You have made changes that may require Explorer to be restarted to become effective. Do you want to restart Explorer now?</value>
+  </data>
+  <data name="ChangingProfilesHeader" xml:space="preserve">
+    <value>Changing Profiles</value>
+  </data>
+  <data name="ChangingProfilesQuestion" xml:space="preserve">
+    <value>These changes will be applied to the following extensions: {0}. Do you want to proceed?</value>
+  </data>
+  <data name="HelpHeader" xml:space="preserve">
+    <value>Help</value>
+  </data>
+  <data name="ErrorHeader" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="XmlParseError" xml:space="preserve">
+    <value>Error "{0}" parsing XML store of saved custom profiles</value>
+  </data>
+  <data name="XmlWriteError" xml:space="preserve">
+    <value>Error "{0}" updating XML store of saved custom profiles</value>
+  </data>
 </root>

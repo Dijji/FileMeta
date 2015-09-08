@@ -3,113 +3,34 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Text;
+using System.Xml.Serialization;
 using Microsoft.Win32;
 using System.Runtime.InteropServices;
 using FileMetadataAssociationManager.Resources;
 
 namespace FileMetadataAssociationManager
 {
-    public class State : INotifyPropertyChanged
+    public class State
     {
         private ObservableCollectionWithReset<Extension> extensions = new ObservableCollectionWithReset<Extension>();
         private Dictionary<string, Extension> dictExtensions = new Dictionary<string, Extension>();
-        private List<Extension> selectedExtensions = new List<Extension>();
-        private Profile selectedProfile = null;
-        private ObservableCollection<Profile> profiles = new ObservableCollection<Profile>();
-        private enum HandlerSet
-        {
-            None,
-            Ours,
-            Other,
-        }
-        private HandlerSet? selectedHandlers;
+        private List<Profile> builtInProfiles = new List<Profile>();
+        private List<TreeItem> allProperties = new List<TreeItem>();
+        private List<string> groupProperties = new List<string>();
+        private SavedState savedState = new SavedState();
+        private bool hasChanged = false;
 
         public ObservableCollectionWithReset<Extension> Extensions { get { return extensions; } }
-        public ObservableCollection<Profile> Profiles { get { return profiles; } }
+        public List<Profile> BuiltInProfiles { get { return builtInProfiles; } }
+        public List<Profile> CustomProfiles { get { return savedState.CustomProfiles; } }
+        public List<TreeItem> AllProperties { get { return allProperties; } }
+        public List<string> GroupProperties { get { return groupProperties; } }
+        public bool HasChanged { get { return hasChanged; } set { hasChanged = value; } }
 
-        public List<Extension> SelectedExtensions { get { return selectedExtensions; } }
-        public Profile SelectedProfile { get { return selectedProfile; } set { selectedProfile = value; OnPropertyChanged("SelectedProfile"); } }
-
-        public void SetSelectedExtensions(System.Collections.IList selections)
-        {
-            SelectedExtensions.Clear();
-            foreach (var s in selections)
-                SelectedExtensions.Add((Extension)s);
-
-            // Cases are:
-            // 1. All selected extensions have no handler: profile combo box is enabled and profile property lists are shown. 
-            // 2. All selected extensions have File Meta handler: profile combo box is disabled and profile for the 
-            //    first selected extension is shown in combo box and profile property lists. 
-            // 3. All other cases: profile combo box is disabled and profile property lists are empty.
-            selectedHandlers = null;
-            foreach (Extension e in SelectedExtensions)
-            {
-                if (!e.HasHandler)
-                {
-                    if (selectedHandlers == null)
-                        selectedHandlers = HandlerSet.None;
-                    else if (selectedHandlers == HandlerSet.None)
-                        continue;
-                    else
-                    {
-                        selectedHandlers = HandlerSet.Other;
-                        break;
-                    }
-                }
-                else if (e.OurHandler)
-                {
-                    if (selectedHandlers == null)
-                        selectedHandlers = HandlerSet.Ours;
-                    else if (selectedHandlers == HandlerSet.Ours)
-                        continue;
-                    else
-                    {
-                        selectedHandlers = HandlerSet.Other;
-                        break;
-                    }
-                }
-                else
-                {
-                    selectedHandlers = HandlerSet.Other;
-                    break;
-                }
-            }
-            if (selectedHandlers == null)
-                selectedHandlers = HandlerSet.Other;
-
-            switch (selectedHandlers)
-            {
-                case HandlerSet.None:
-                    if (SelectedProfile == null)
-                        SelectedProfile = Profiles.First();
-                    break;
-                case HandlerSet.Ours:
-                    SelectedProfile = SelectedExtensions.First().GetCurrentProfileIfKnown();
-                    break;
-                case HandlerSet.Other:
-                    SelectedProfile = null;
-                    break;
-            }
-
-            OnPropertyChanged("CanChooseProfile");
-            OnPropertyChanged("CanAddPropertyHandlerEtc");
-            OnPropertyChanged("CanRemovePropertyHandlerEtc");
-        }
-
-        public bool CanChooseProfile { get { return selectedHandlers == HandlerSet.None; } }
-
-        public bool CanAddPropertyHandlerEtc
-        {
-            get
-            {
-                return Extension.IsOurPropertyHandlerRegistered && SelectedProfile != null &&
-                       selectedHandlers == HandlerSet.None;
-            }
-        }
-        public bool CanRemovePropertyHandlerEtc { get { return selectedHandlers == HandlerSet.Ours; } }
+        public Profile SelectedProfile { get; set; }  // used during view transitions
 
         public string Restrictions
         {
@@ -139,10 +60,185 @@ namespace FileMetadataAssociationManager
 
         public void Populate()
         {
-            PopulateExtensions();
             PopulateProfiles();
+            PopulateExtensions();
         }
-        
+
+        public void SortExtensions()
+        {
+            // Sort by file extension, but group by our handler, other handlers, and finally no handler
+            // This uses a Sort extension to ObservableCollection
+            extensions.Sort((e, f) =>
+                e.OurHandler ?
+                    (f.OurHandler ? e.Name.CompareTo(f.Name) : -1) :
+                    f.OurHandler ? 1 :
+                        e.ForeignHandler ? (f.ForeignHandler ? e.Name.CompareTo(f.Name) : -1) :
+                        f.ForeignHandler ? 1 :
+                            e.Name.CompareTo(f.Name));
+            //Extensions.NotifyReset();
+        }
+
+
+        public void PopulateSystemProperties()
+        {
+            IPropertyDescriptionList propertyDescriptionList = null;
+            IPropertyDescription propertyDescription = null;
+            Guid guid = new Guid(ShellIIDGuid.IPropertyDescriptionList);
+
+            try
+            {
+                int hr = PropertySystemNativeMethods.PSEnumeratePropertyDescriptions(PropertySystemNativeMethods.PropDescEnumFilter.PDEF_ALL, ref guid, out propertyDescriptionList);
+                if (hr >= 0)
+                {
+                    uint count;
+                    propertyDescriptionList.GetCount(out count);
+                    guid = new Guid(ShellIIDGuid.IPropertyDescription);
+                    Dictionary<string, List<string>> dict = new Dictionary<string, List<string>>();
+
+                    for (uint i = 0; i < count; i++)
+                    {
+                        propertyDescriptionList.GetAt(i, ref guid, out propertyDescription);
+
+                        string propName;
+                        propertyDescription.GetCanonicalName(out propName);
+
+                        List<string> names = null;
+                        string[] parts = propName.Split('.');
+                        if (parts.Count() == 2)
+                        {
+                            // System.Foo
+                            if (!dict.TryGetValue(parts[0], out names))
+                            {
+                                names = new List<string>();
+                                dict.Add(parts[0], names);
+                            }
+                            names.Add(parts[1]);
+                        }
+                        else if (parts.Count() == 3)
+                        {
+                            // System.Bar.Baz
+                            if (!dict.TryGetValue(parts[1], out names))
+                            {
+                                names = new List<string>();
+                                dict.Add(parts[1], names);
+                            }
+                            names.Add(parts[2]);
+                        }
+
+                        // If we ever need it:
+                        // ShellPropertyDescription desc = new ShellPropertyDescription(propertyDescription);
+
+                        if (propertyDescription != null)
+                        {
+                            Marshal.ReleaseComObject(propertyDescription);
+                            propertyDescription = null;
+                        }
+                    }
+
+                    // build tree
+                    foreach (string cat in dict.Keys)
+                    {
+                        TreeItem main = new TreeItem(cat, PropType.Group);
+                        foreach (string name in dict[cat])
+                            main.AddChild(new TreeItem(name, PropType.Normal));
+
+                        if (cat == "System")
+                            AllProperties.Insert(0, main);
+                        else if (cat == "PropGroup")
+                        {
+                            foreach (TreeItem ti in main.Children)
+                                GroupProperties.Add(ti.Name);
+                        }
+                        else
+                            AllProperties.Add(main);
+                    }
+                }
+            }
+            finally
+            {
+                if (propertyDescriptionList != null)
+                {
+                    Marshal.ReleaseComObject(propertyDescriptionList);
+                }
+                if (propertyDescription != null)
+                {
+                    Marshal.ReleaseComObject(propertyDescription);
+                }
+            }
+        }
+
+        public string GetSystemPropertyName(TreeItem ti)
+        {
+            if (ti == null || (PropType)ti.Item != PropType.Normal)
+                return null;
+            else 
+            {
+                StringBuilder sb = new StringBuilder(ti.Name);
+                bool hasSystem = false;
+                for (TreeItem parent = ti.Parent; parent != null; parent = parent.Parent)
+                {
+                    sb.Insert(0, ".");
+                    sb.Insert(0, parent.Name);
+                    if(parent.Name == "System")
+                        hasSystem = true;
+                }
+                if (!hasSystem)
+                    sb.Insert(0, "System.");
+
+                return sb.ToString();
+            }
+        }
+
+        public void LoadSavedState()
+        {
+            try
+            {
+                DirectoryInfo di = ObtainDataDirectory();
+                FileInfo fi = di.GetFiles().Where(f => f.Name == "SavedState.xml").FirstOrDefault();
+
+                if (fi != null)
+                {
+                    XmlSerializer x = new XmlSerializer(typeof(SavedState));
+                    TextReader reader = new StreamReader(fi.FullName);
+                    SavedState loaded = (SavedState)x.Deserialize(reader);
+                    reader.Close();
+                    savedState = loaded;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show(String.Format(LocalizedMessages.XmlParseError, ex.Message), LocalizedMessages.ErrorHeader);
+            }
+        }
+
+        public void StoreSavedState()
+        {
+            try
+            {
+                XmlSerializer x = new XmlSerializer(typeof(SavedState));
+                TextWriter writer = new StreamWriter(ObtainDataDirectory().FullName + @"\SavedState.xml");
+                x.Serialize(writer, savedState);
+                writer.Close();
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show(String.Format(LocalizedMessages.XmlWriteError, ex.Message), LocalizedMessages.ErrorHeader);
+            }
+        }
+
+        public IEnumerable<Extension> GetExtensionsUsingProfile(Profile p)
+        {
+            return Extensions.Where(e => e.Profile == p);
+        }
+
+        private void PopulateProfiles()
+        {
+            foreach (Profile p in Profile.GetBuiltinProfiles(this))
+                BuiltInProfiles.Add(p);
+
+            LoadSavedState();
+        }
+
         private void PopulateExtensions()
         {
             var hkcr = Registry.ClassesRoot;
@@ -188,43 +284,22 @@ namespace FileMetadataAssociationManager
                 if (dictExtensions.TryGetValue(name.ToLower(), out e))
                 {
                     e.RecordPropertyHandler(handlerGuid, handlerTitle);
+                    e.IdentifyCurrentProfile();
                 }
             }
 
             SortExtensions();
-            SetSelectedExtensions(new List<Extension> {Extensions.First()});
         }
 
-        public void SortExtensions()
+
+        private DirectoryInfo ObtainDataDirectory()
         {
-            // Sort by file extension, but group by our handler, other handlers, and finally no handler
-            // This uses a Sort extension to ObservableCollection
-            extensions.Sort((e, f) =>
-                e.OurHandler ?
-                    (f.OurHandler ? e.Name.CompareTo(f.Name) : -1) :
-                    f.OurHandler ? 1 :
-                        e.ForeignHandler ? (f.ForeignHandler ? e.Name.CompareTo(f.Name) : -1) :
-                        f.ForeignHandler ? 1 :
-                            e.Name.CompareTo(f.Name));
-            //Extensions.NotifyReset();
-        }
+            DirectoryInfo di = new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData));
+            DirectoryInfo target = di.GetDirectories().Where(d => d.Name == "FileMeta").FirstOrDefault();
+            if (target == null)
+                target = di.CreateSubdirectory("FileMeta");
 
-        private void PopulateProfiles()
-        {
-            foreach (Profile p in Profile.GetBuiltinProfiles(this))
-                Profiles.Add(p);
-
-            SelectedProfile = Profiles.Count > 0 ? Profiles[0] : null;
-        }
-
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        private void OnPropertyChanged(String info)
-        {
-            if (PropertyChanged != null)
-            {
-                PropertyChanged(this, new PropertyChangedEventArgs(info));
-            }
+            return target;
         }
     }
 }

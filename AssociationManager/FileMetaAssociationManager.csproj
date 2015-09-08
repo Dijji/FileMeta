@@ -96,6 +96,13 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="MainView.cs" />
+    <Compile Include="Enums.cs" />
+    <Compile Include="NameChangedEventArgs.cs" />
+    <Compile Include="ProfilesView.cs" />
+    <Compile Include="ProfilesWindow.xaml.cs">
+      <DependentUpon>ProfilesWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Code Pack\CoreErrorHelper.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="ObservableCollectionWithReset.cs" />
@@ -113,8 +120,13 @@
     <Compile Include="Code Pack\ShellPropertyEnums.cs" />
     <Compile Include="Code Pack\ShellPropertyEnumType.cs" />
     <Compile Include="Code Pack\ShellPropertyFactory.cs" />
+    <Compile Include="SavedState.cs" />
     <Compile Include="State.cs" />
     <Compile Include="TreeItem.cs" />
+    <Page Include="ProfilesWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -173,6 +185,12 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Resources\refresh.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\GongSolutions.Wpf.DragDrop\GongSolutions.Wpf.DragDrop %28NET35%29.csproj">
+      <Project>{0C6674CC-6D49-414A-9B41-D4E175028FFB}</Project>
+      <Name>GongSolutions.Wpf.DragDrop %28NET35%29</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
