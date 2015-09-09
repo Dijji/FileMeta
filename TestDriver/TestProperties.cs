@@ -75,6 +75,7 @@ namespace TestDriver
             var dobj = new DataObject();
             dobj.SetFileDropList(new StringCollection { fileName });
             contextHandler.Initialize(new IntPtr(0), dobj, 0);
+            contextHandler.QueryContextMenu(0, 0, 0, 0, 0); // This fails, but  that's ok
 
             //export the metadata
             CMINVOKECOMMANDINFOEX cmd = new CMINVOKECOMMANDINFOEX();
@@ -96,6 +97,7 @@ namespace TestDriver
             dobj = new DataObject();
             dobj.SetFileDropList(new StringCollection { fileName2 });
             contextHandler.Initialize(new IntPtr(0), dobj, 0);
+            contextHandler.QueryContextMenu(0, 0, 0, 0, 0); // This fails, but  that's ok
 
             cmd = new CMINVOKECOMMANDINFOEX();
             cmd.lpVerb = new IntPtr((int)ContextMenuVerbs.Import);
