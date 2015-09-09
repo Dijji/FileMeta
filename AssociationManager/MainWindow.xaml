@@ -55,6 +55,8 @@
             <Button x:Uid="removeHandler" Content="Remove File Meta Handler" Height="23" Name="removeHandler" Margin="10,0,15,0" FontSize="12" Click="removeHandler_Click" IsEnabled="{Binding Path=CanRemovePropertyHandlerEtc}" />
             <TextBlock x:Uid="TextBlock_18" Text="To manage custom profiles:" TextWrapping="Wrap" FontSize="12" FontWeight="Bold" Margin="5,60,0,10"/>
             <Button x:Uid="advanced" Content="Custom Profiles..." Height="23" Name="profiles" Margin="10,0,15,0" FontSize="12" Click="profiles_Click"  />
+            <TextBlock x:Uid="TextBlock_19" Text="To restart Explorer:" TextWrapping="Wrap" FontSize="12" FontWeight="Bold" Margin="5,60,0,10"/>
+            <Button x:Uid="restartExplorer" Content="Restart Explorer" Height="23" Name="restartExplorer" Margin="10,0,15,0" FontSize="12" Click="restartExplorer_Click"  />
             <TextBlock x:Uid="Label_3" Text="{Binding Path=Restrictions}" TextWrapping="Wrap" Margin="5,90,0,0" FontSize="12" Style="{StaticResource ColorByRestriction}" />
         </StackPanel>
         <Grid x:Uid="Grid_2" Grid.Column="1">

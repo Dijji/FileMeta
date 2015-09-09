@@ -96,6 +96,9 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="HowTo.xaml.cs">
+      <DependentUpon>HowTo.xaml</DependentUpon>
+    </Compile>
     <Compile Include="MainView.cs" />
     <Compile Include="Enums.cs" />
     <Compile Include="NameChangedEventArgs.cs" />
@@ -123,6 +126,10 @@
     <Compile Include="SavedState.cs" />
     <Compile Include="State.cs" />
     <Compile Include="TreeItem.cs" />
+    <Page Include="HowTo.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="ProfilesWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -156,7 +163,9 @@
       <SubType>Designer</SubType>
     </EmbeddedResource>
     <None Include="Admin.manifest" />
-    <None Include="app.config" />
+    <None Include="app.config">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>

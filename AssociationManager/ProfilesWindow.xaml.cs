@@ -58,9 +58,14 @@ namespace FileMetadataAssociationManager
             return ProfileControls.Unknown;
         }
 
-        private void useDragDrop_Click(object sender, RoutedEventArgs e)
+        private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show(LocalizedMessages.UseDragDrop, LocalizedMessages.HelpHeader, MessageBoxButton.OK);
+            if (!Properties.Settings.Default.SuppressHowTo)
+            {
+                var w = new HowTo();
+                w.Owner = this;
+                w.Show();
+            }
         }
 
         private void cbApply_Click(object sender, RoutedEventArgs e)
@@ -83,6 +88,41 @@ namespace FileMetadataAssociationManager
         {
             // Pass back the currently selected profile, if there is one
             state.SelectedProfile = view.SelectedProfile != null ? view.SelectedProfile.Original : null;
+        }
+
+        void TreeViewItem_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            TreeViewItem treeViewItem = 
+                      VisualUpwardSearch<TreeViewItem>(e.OriginalSource as DependencyObject);
+
+            if(treeViewItem != null)
+            {
+                //System.Diagnostics.Trace.WriteLine(String.Format("preview selecting {0}", ((TreeItem)treeViewItem.Header).Name));
+                treeViewItem.Focus();
+                treeViewItem.IsSelected = true;
+                e.Handled = true;
+            }
+        }
+
+        static T VisualUpwardSearch<T>(DependencyObject source) where T : DependencyObject
+        {
+            DependencyObject returnVal = source;
+
+            while(returnVal != null && !(returnVal is T))
+            {
+                DependencyObject tempReturnVal = null;
+                if(returnVal is Visual) // || returnVal is Visual3D)
+                {
+                    tempReturnVal = VisualTreeHelper.GetParent(returnVal);
+                }
+                if(tempReturnVal == null)
+                {
+                    returnVal = LogicalTreeHelper.GetParent(returnVal);
+                }
+                else returnVal = tempReturnVal;
+            }
+
+            return returnVal as T;
         }
 
         private void treeProfiles_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
@@ -259,16 +299,21 @@ namespace FileMetadataAssociationManager
                 {
                     // Take the item on which the context menu was invoked
                     TreeViewItem tvi = (TreeViewItem)e.OriginalSource;
+                    //System.Diagnostics.Trace.WriteLine(String.Format("Tree at {0}", ((TreeItem)tvi.Header).Name));
                     ti = (TreeItem)tvi.Header;
                 }
                 else
                 {
                     // TreeView
-                    // A shortcut key was used, so take the currently selected item
+                    // If a shortcut key was used, take the currently selected item
                     if (e.Parameter as string != null && ((string)e.Parameter) == "Keystroke")
                     {
+                        //System.Diagnostics.Trace.WriteLine(String.Format("Tree selected {0}", ((TreeItem)((TreeView)e.Source).SelectedItem).Name));
                         ti = (TreeItem)((TreeView)e.Source).SelectedItem;
                     }
+                    //else
+                    //    System.Diagnostics.Trace.WriteLine(String.Format("Tree none {0}", ""));
+
                 }
             }
 
@@ -277,6 +322,7 @@ namespace FileMetadataAssociationManager
 
         private TreeItem DetermineTreeItem(ExecutedRoutedEventArgs e)
         {
+
             if (e.OriginalSource is TreeViewItem)
             {
                 TreeViewItem tvi = (TreeViewItem)e.OriginalSource;
