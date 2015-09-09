@@ -57,29 +57,7 @@ namespace FileMetadataAssociationManager
                 }
                 else
                 {
-                    // Yes. Kill all existing instances of Explorer
-                    bool failed = false;
-                    try
-                    {
-                        foreach (Process p in Process.GetProcessesByName("explorer"))
-                        {
-                            p.Kill();
-                            p.WaitForExit(); // possibly with a timeout
-                        }
-                    }
-                    catch (System.Exception ex)
-                    {
-                        failed = true;
-                    }
-
-                    // If that worked, start up a new instance so that at least the desktop is available
-                    if (!failed)
-                    {
-                        Process p = new Process();
-                        p.StartInfo.UseShellExecute = false;
-                        p.StartInfo.FileName = Environment.GetEnvironmentVariable("SystemRoot") + @"\explorer.exe";
-                        p.Start();
-                    }
+                    restartExplorer_Click(null, null);
                 }
             }
         }
@@ -139,6 +117,33 @@ namespace FileMetadataAssociationManager
             w.ShowDialog();
             view.RefreshProfiles();
             view.SelectedProfile = state.SelectedProfile;
+        }
+
+        private void restartExplorer_Click(object sender, RoutedEventArgs e)
+        {
+            bool failed = false;
+            try
+            {
+                foreach (Process p in Process.GetProcessesByName("explorer"))
+                {
+                    p.Kill();
+                    p.WaitForExit(); // possibly with a timeout
+                }
+            }
+            catch (System.Exception ex)
+            {
+                failed = true;
+            }
+
+            // If that worked, start up a new instance so that at least the desktop is available
+            if (!failed)
+            {
+                Process p = new Process();
+                p.StartInfo.UseShellExecute = false;
+                p.StartInfo.FileName = Environment.GetEnvironmentVariable("SystemRoot") + @"\explorer.exe";
+                p.Start();
+                state.HasChanged = false;
+            }
         }
     }
 }

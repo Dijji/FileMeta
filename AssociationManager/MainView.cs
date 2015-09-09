@@ -26,6 +26,8 @@ namespace FileMetadataAssociationManager
         private bool sortRequired = false;
 
         public ObservableCollectionWithReset<Extension> Extensions { get { return state.Extensions; } }
+        public string Restrictions { get { return state.Restrictions; } }
+        public int RestrictionLevel { get { return state.RestrictionLevel; } }
 
         public ObservableCollection<TreeItem> FullDetails { get { return selectedProfile == null ? null : selectedProfile.FullDetails; } }
         public ObservableCollection<string> PreviewDetails { get { return selectedProfile == null ? null : selectedProfile.PreviewDetails; } }
