@@ -22,7 +22,7 @@ namespace TestDriver
     [ComImport]
     [CoClass(typeof(CPropertyHandlerClass))]
     [Guid("B7D14566-0509-4CCE-A71F-0A554233BD9B")]
-    interface CPropertyHandler : IInitializeWithFile, IPropertyStore
+    interface CPropertyHandler : IInitializeWithFile, IPropertyStore, IPropertyStoreCapabilities
     {
     }
 
@@ -58,6 +58,15 @@ namespace TestDriver
         [PreserveSig]
         [MethodImpl(MethodImplOptions.InternalCall, MethodCodeType = MethodCodeType.Runtime)]
         HResult Commit();
+    }
+
+
+    [ComImport]
+    [Guid("C8E2D566-186E-4D49-BF41-6909EAD56ACC")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    interface IPropertyStoreCapabilities
+    {
+        HResult IsPropertyWritable([In]ref PropertyKey propertyKey);
     }
 
     // ContextMenuHandler
