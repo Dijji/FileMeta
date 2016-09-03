@@ -84,12 +84,12 @@ namespace TestDriver
                 throw new System.Exception("Prequisite: Context Menu Handler must be registered");
         }
 
-        protected void RequireTxtProperties()
+        protected void RequireExtHasHandler(string extension = ".txt")
         {
             if (isTxtPropertyHandlerRegistered == null)
             {
                 isTxtPropertyHandlerRegistered = false;
-                var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\PropertySystem\PropertyHandlers\.txt", false);
+                var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\PropertySystem\PropertyHandlers\" + extension, false);
 
                 if (key != null)
                 {
@@ -100,13 +100,13 @@ namespace TestDriver
             }
 
             if (!(bool)isTxtPropertyHandlerRegistered)
-                throw new System.Exception("Prequisite: .txt extension must be set to use our Property Handler");
+                throw new System.Exception(String.Format("Prequisite: {0} extension must be set to use our Property Handler", extension));
         }
 
-        protected string CreateFreshFile(int index)
+        protected string CreateFreshFile(int index, string extension = ".txt")
         {
             //Create a temp file to put metadata on
-            string fileName = Path.GetTempPath() + "test" + index.ToString() + ".txt";
+            string fileName = Path.GetTempPath() + "test" + index.ToString() + extension;
 
             // Need delete as ovverwrite won't clear alternate streams
             if (File.Exists(fileName))

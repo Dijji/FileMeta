@@ -19,9 +19,10 @@ namespace TestDriver
         public string Name;
         public object Value;
     }
-    class TestProperties1 : Test
+    class TestMassRoundTrip : Test
     {
-        public override string Name { get { return "Write, read, export and import as many properties as possible"; } }
+        public override string Name { get { return String.Format("Write, read, export and import as many properties on '{0}' file as possible", extension); } }
+        private string extension;
         private Random random = new Random();
         private const int max16 = 32767;
         private const int max32 = 2147483647;
@@ -29,16 +30,21 @@ namespace TestDriver
         private long maxTocks = DateTime.MaxValue.Ticks;
         private List<SavedProp> savedProps;
 
+        public TestMassRoundTrip(string extension)
+        {
+            this.extension = extension;
+        }
+
         public override bool RunBody(State state)
         {
             RequirePropertyHandlerRegistered();
             RequireContextHandlerRegistered();
-            RequireTxtProperties();
+            RequireExtHasHandler(extension);
 
-            state.RecordEntry("Starting mass property setting...");
+            state.RecordEntry(String.Format("Starting mass property setting on '{0}'...", extension));
 
             //Create a temp file to put metadata on
-            string fileName = CreateFreshFile(1);
+            string fileName = CreateFreshFile(1, extension);
 
             savedProps = new List<SavedProp>();
 
@@ -60,7 +66,7 @@ namespace TestDriver
                 IShellProperty prop = ShellObject.FromParsingName(fileName).Properties.GetProperty(propDesc.CanonicalName);
                 SetPropertyValue(fileName, propDesc, prop);
             }
-            state.RecordEntry(String.Format("{0} property values set", savedProps.Count));
+            state.RecordEntry(String.Format("{0} property values set on {1}", savedProps.Count, fileName));
 
             // Go around again, using the Handler directly to read all the values written and then check them
             int errors = GetAndCheckValues(fileName, state);
@@ -86,7 +92,7 @@ namespace TestDriver
             Marshal.ReleaseComObject(contextHandler);  // preempt GC for CCW
 
             // Create new file and import values to it
-            string fileName2 = CreateFreshFile(2);
+            string fileName2 = CreateFreshFile(2, extension);
 
             // rename metadata file
             RenameWithDelete(MetadataFileName(fileName), MetadataFileName(fileName2));
