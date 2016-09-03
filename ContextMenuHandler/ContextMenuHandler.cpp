@@ -163,13 +163,13 @@ IFACEMETHODIMP CContextMenuHandler::QueryContextMenu(
         ReleaseStgMedium(&stm);
     }
 
-	wchar_t szXmlTarget[MAX_PATH];	
+	WCHAR szXmlTarget[MAX_PATH];	
     hr = S_OK;
 
     if (m_files.size() == 1)
     {
-		StringCbCopyW(szXmlTarget, MAX_PATH, m_files[0].c_str());
-		StringCbCatW(szXmlTarget, MAX_PATH, MetadataFileSuffix);
+		wcscpy_s(szXmlTarget, MAX_PATH, m_files[0].c_str());
+		wcscat_s(szXmlTarget, MAX_PATH, MetadataFileSuffix);
     }
 	else
 	{
@@ -183,13 +183,13 @@ IFACEMETHODIMP CContextMenuHandler::QueryContextMenu(
 
 	// Export
     AccessResourceString(IDS_EXPORT, buffer, MAX_PATH);
-	StringCbCatW(buffer, 2*MAX_PATH, szXmlTarget);
+	wcscat_s(buffer, 2*MAX_PATH, szXmlTarget);
 	if (!InsertMenu ( hSubmenu, 0, MF_BYPOSITION, uID++, buffer) )
 		return HRESULT_FROM_WIN32(GetLastError());
 
 	// Import
     AccessResourceString(IDS_IMPORT, buffer, MAX_PATH);
-	StringCbCatW(buffer, 2*MAX_PATH, szXmlTarget);
+	wcscat_s(buffer, 2*MAX_PATH, szXmlTarget);
 	UINT uMenuFlags = MF_BYPOSITION;
 
 	// Grey menu item if single file does not exist or cannot be opened
@@ -272,14 +272,13 @@ IFACEMETHODIMP CContextMenuHandler::InvokeCommand(LPCMINVOKECOMMANDINFO pici)
 					wstring s;
 					print(std::back_inserter(s), doc, 0);
 
-					wchar_t szXmlTarget[MAX_PATH];	
-					StringCbCopyW(szXmlTarget, MAX_PATH, m_files[i].c_str());
-					StringCbCatW(szXmlTarget, MAX_PATH, MetadataFileSuffix);
+					wstring szXmlTarget = m_files[i];
+					szXmlTarget += MetadataFileSuffix;
 
 					// Now write from the XML string to a file stream
 					// This used to be STL, but wofstream by default writes 8-bit encoded files, and changing that is complex
 					FILE *pfile;
-					errno_t err = _wfopen_s(&pfile, szXmlTarget, L"w+, ccs=UTF-16LE");
+					errno_t err = _wfopen_s(&pfile, szXmlTarget.c_str(), L"w+, ccs=UTF-16LE");
 					if (0 == err)
 					{
 						fwrite(s.c_str(), sizeof(WCHAR), s.length(), pfile);
@@ -311,13 +310,12 @@ IFACEMETHODIMP CContextMenuHandler::InvokeCommand(LPCMINVOKECOMMANDINFO pici)
 						if (!m_checker.HasOurPropertyHandler(m_files[i]))
 							continue;
 
-					wchar_t szXmlTarget[MAX_PATH];	
-					StringCbCopyW(szXmlTarget, MAX_PATH, m_files[i].c_str());
-					StringCbCatW(szXmlTarget, MAX_PATH, MetadataFileSuffix);
+					wstring szXmlTarget = m_files[i];
+					szXmlTarget += MetadataFileSuffix;
 
 					// rapidxml parsing works only from a string, so read the whole file
 					FILE *pfile;
-					errno_t err = _wfopen_s(&pfile, szXmlTarget, L"rb");
+					errno_t err = _wfopen_s(&pfile, szXmlTarget.c_str(), L"rb");
 					if (0 == err)
 					{
 						fseek (pfile , 0 , SEEK_END);
