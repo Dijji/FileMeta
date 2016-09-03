@@ -123,7 +123,7 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>LocalizedMessages.resx</DependentUpon>
     </Compile>
-    <Compile Include="TestProperties.cs" />
+    <Compile Include="TestMassRoundTrip.cs" />
     <Compile Include="TestRoundTrips.cs" />
     <Compile Include="Test.cs" />
     <Compile Include="State.cs" />

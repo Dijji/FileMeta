@@ -30,6 +30,7 @@ namespace TestDriver
         private string status;
         private RunState running;
         private List<ShellPropertyDescription> propDescs = new List<ShellPropertyDescription>();
+        private Dictionary<string, ShellPropertyDescription> propDescDict = new Dictionary<string,ShellPropertyDescription>();
         private List<Test> testsToRun = new List<Test>();
         public MainWindow window;
 
@@ -38,6 +39,7 @@ namespace TestDriver
         public string Status { get { return status; } set { status = value; OnPropertyChanged("Status"); } }
         public Test SelectedTest { get { return selectedTest; } set { selectedTest = value; OnPropertyChanged("SelectedTest"); } }
         public List<ShellPropertyDescription> PropertyDescriptions { get { return propDescs; } }
+        public Dictionary<string, ShellPropertyDescription> PropertyDescriptionDict { get { return propDescDict; } }
         public RunState Running { get { return running; } set { running = value; OnPropertyChanged("Running"); OnPropertyChanged("Idle"); OnPropertyChanged("IdleOrLooping"); } }
         public bool Idle { get { return running == RunState.Idle; } }
         public bool IdleOrLooping { get { return running == RunState.Idle || running == RunState.Looping; } }
@@ -75,7 +77,9 @@ namespace TestDriver
             Tests.Add(new RoundTrip5());
             Tests.Add(new ExportImport1());
             Tests.Add(new ExportImport2());
-            Tests.Add(new TestProperties1());
+            Tests.Add(new TestMassRoundTrip(".txt"));
+            Tests.Add(new TestMassRoundTrip(".bmp"));
+            //Tests.Add(new TestWritable());
             SelectedTest = Tests.Count > 0 ? Tests[0] : null;
         }
 
@@ -98,8 +102,10 @@ namespace TestDriver
                     for (uint i = 0; i < count; i++)
                     {
                         propertyDescriptionList.GetAt(i, ref guid, out propertyDescription);
+                        var spd = new ShellPropertyDescription(propertyDescription);
 
-                        propDescs.Add(new ShellPropertyDescription(propertyDescription));
+                        propDescs.Add(spd);
+                        propDescDict.Add(spd.CanonicalName, spd);
                     }
                 }
             }

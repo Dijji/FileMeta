@@ -25,7 +25,7 @@ namespace TestDriver
         public override bool RunBody(State state)
         {
             RequirePropertyHandlerRegistered();
-            RequireTxtProperties();
+            RequireExtHasHandler();
 
             const string cval = "acomment!!";
             string propertyName = "System.Comment";
@@ -61,7 +61,7 @@ namespace TestDriver
         public override bool RunBody(State state)
         {
             RequirePropertyHandlerRegistered();
-            RequireTxtProperties();
+            RequireExtHasHandler();
 
             const string cval = "bcomment??";
             string propertyName = "System.Comment";
@@ -97,7 +97,7 @@ namespace TestDriver
         public override bool RunBody(State state)
         {
             RequirePropertyHandlerRegistered();
-            RequireTxtProperties();
+            RequireExtHasHandler();
 
 #if x86
 
@@ -144,7 +144,7 @@ namespace TestDriver
         public override bool RunBody(State state)
         {
             RequirePropertyHandlerRegistered();
-            RequireTxtProperties();
+            RequireExtHasHandler();
 
             const string cval1 = "할말있어";
             string[] cval2 = { "hello", "Приветствия"};
@@ -186,7 +186,7 @@ namespace TestDriver
         public override bool RunBody(State state)
         {
             RequirePropertyHandlerRegistered();
-            RequireTxtProperties();
+            RequireExtHasHandler();
 
             string propertyName1 = "System.Comment";
             const string cval1 = "comment";

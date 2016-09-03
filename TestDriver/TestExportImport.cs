@@ -20,7 +20,7 @@ namespace TestDriver
         {
             RequirePropertyHandlerRegistered();
             RequireContextHandlerRegistered();
-            RequireTxtProperties();
+            RequireExtHasHandler();
 
             const string cval = "exp-imp";
             string propertyName = "System.Comment";
@@ -89,7 +89,7 @@ namespace TestDriver
         {
             RequirePropertyHandlerRegistered();
             RequireContextHandlerRegistered();
-            RequireTxtProperties();
+            RequireExtHasHandler();
 
             string cval1 = "할말있어";
             string[] cval2 = { "hello", "Приветствия" };
