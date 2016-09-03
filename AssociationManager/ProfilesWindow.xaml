@@ -18,6 +18,7 @@
         </ContextMenu>
         <ContextMenu x:Uid="ContextMenu_2" x:Key="DetailsContextMenu">
             <MenuItem  x:Uid="MenuItem_5" Header="Remove" Command="Delete"  />
+            <MenuItem  x:Uid="MenuItem_6" Header="Toggle *" Command="Replace" InputGestureText="Ctrl+T" />
         </ContextMenu>
         <Style x:Uid="Style_3" x:Key="EditableTreeViewTextBox" TargetType="{x:Type TextBox}">
             <Style.Triggers>
@@ -133,14 +134,13 @@
                     <ColumnDefinition x:Uid="ColumnDefinition_5" Width="20"/>
                     <ColumnDefinition x:Uid="ColumnDefinition_10" Width="1*"/>
                 </Grid.ColumnDefinitions>
-                 <Label x:Uid="Label_6" Grid.Column="1" Content="Full details" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="12"/>
+                <Label x:Uid="Label_6" Grid.Column="1" Content="Full details" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="12"/>
                 <Label x:Uid="Label_7" Grid.Column="3" Content="Preview Panel" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="12"/>
             </Grid>
             <Grid x:Uid="Grid_6" Grid.Row="1">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition x:Uid="ColumnDefinition_6" Width="20"/>
                     <ColumnDefinition x:Uid="ColumnDefinition_7" Width="1*"/>
-                    <ColumnDefinition x:Uid="ColumnDefinition_8" Width="20"/>
                     <ColumnDefinition x:Uid="ColumnDefinition_11" Width="1*"/>
                 </Grid.ColumnDefinitions>
                 <Grid  x:Uid="Grid_11" Grid.Column="0">
@@ -158,9 +158,11 @@
                           dd:DragDrop.IsDragSource="True" dd:DragDrop.IsDropTarget="True" dd:DragDrop.DropHandler="{Binding}">
                     <TreeView.InputBindings>
                         <KeyBinding x:Uid="KeyBinding_1" Command="Delete" Gesture="Del" CommandParameter="Keystroke"/>
+                        <KeyBinding x:Uid="KeyBinding_7" Command="Replace" Gesture="CTRL+T" CommandParameter="Keystroke"/>
                     </TreeView.InputBindings>
                     <TreeView.CommandBindings>
                         <CommandBinding x:Uid="CommandBinding_1" Command="Delete" CanExecute="RemoveFullDetails_CanExecute" Executed="RemoveFullDetails_Executed"/>
+                        <CommandBinding x:Uid="CommandBinding_8" Command="Replace" CanExecute="ToggleAsteriskFullDetails_CanExecute" Executed="ToggleAsteriskFullDetails_Executed"/>
                     </TreeView.CommandBindings>
                     <TreeView.ItemTemplate>
                         <HierarchicalDataTemplate x:Uid="HierarchicalDataTemplate_2" ItemsSource="{Binding Path=Children}">
@@ -177,27 +179,54 @@
                         </Style>
                     </TreeView.ItemContainerStyle>
                 </TreeView>
-                <Grid  x:Uid="Grid_12" Grid.Column="2">
+                <Grid x:Uid="Grid_15" Grid.Column="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition x:Uid="ColumnDefinition_12" Width="20"/>
+                        <ColumnDefinition x:Uid="ColumnDefinition_13" Width="1*"/>
+                    </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
-                        <RowDefinition x:Uid="RowDefinition_11" Height="1*"/>
+                        <RowDefinition x:Uid="RowDefinition_18" Height="5*"/>
+                        <RowDefinition x:Uid="RowDefinition_19" Height="30"/>
+                        <RowDefinition x:Uid="RowDefinition_20" Height="3*"/>
                     </Grid.RowDefinitions>
-                <Label x:Uid="addToPreview" Grid.Row="0" Name="addToPreview" Margin="-5,0,0,20" Width="30" Height="40" Content="&#8658;" FontSize="24" FontWeight="ExtraBold" />
-                </Grid>
-                <ListBox x:Uid="listPreviewDetails" Grid.Column="3" Name="listPreviewDetails" Margin="10,0,10,0" 
-                         ItemsSource="{Binding Path=PreviewDetails}" FontSize="12" ContextMenu="{StaticResource DetailsContextMenu}"
-                         dd:DragDrop.IsDragSource="True" dd:DragDrop.IsDropTarget="True" dd:DragDrop.DropHandler="{Binding}">
-                    <ListBox.InputBindings>
-                        <KeyBinding x:Uid="KeyBinding_2" Command="Delete" Gesture="Del" CommandParameter="Keystroke"/>
-                    </ListBox.InputBindings>
-                    <ListBox.CommandBindings>
-                        <CommandBinding x:Uid="CommandBinding_2" Command="Delete" CanExecute="RemovePreviewDetails_CanExecute" Executed="RemovePreviewDetails_Executed"/>
-                    </ListBox.CommandBindings>
-                    <ListBox.ItemTemplate>
-                        <DataTemplate x:Uid="DataTemplate_3">
-                            <TextBlock x:Uid="TextBlock_5" Text="{Binding Path=.}" />
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
+                    <Label x:Uid="addToPreview" Grid.Row="0" Name="addToPreview" Margin="-5,0,0,20" Width="30" Height="40" Content="&#8658;" FontSize="24" FontWeight="ExtraBold" />
+                    <ListBox Grid.Row="0" Grid.Column="1" x:Uid="listPreviewDetails" Name="listPreviewDetails" Margin="10,0,10,0" 
+                             ItemsSource="{Binding Path=PreviewDetails}" FontSize="12" ContextMenu="{StaticResource DetailsContextMenu}"
+                             dd:DragDrop.IsDragSource="True" dd:DragDrop.IsDropTarget="True" dd:DragDrop.DropHandler="{Binding}">
+                        <ListBox.InputBindings>
+                            <KeyBinding x:Uid="KeyBinding_2" Command="Delete" Gesture="Del" CommandParameter="Keystroke"/>
+                            <KeyBinding x:Uid="KeyBinding_8" Command="Replace" Gesture="CTRL+T" CommandParameter="Keystroke"/>
+                        </ListBox.InputBindings>
+                        <ListBox.CommandBindings>
+                            <CommandBinding x:Uid="CommandBinding_2" Command="Delete" CanExecute="PropertyChange_CanExecute" Executed="RemovePreviewDetails_Executed"/>
+                            <CommandBinding x:Uid="CommandBinding_9" Command="Replace" CanExecute="PropertyChange_CanExecute" Executed="ToggleAsterisk_Executed"/>
+                        </ListBox.CommandBindings>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:Uid="DataTemplate_3">
+                                <TextBlock x:Uid="TextBlock_5" Text="{Binding Path=NameString}" />
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <Label x:Uid="Label_11" Grid.Row="1" Grid.Column="1" Content="Info Tip" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="12"/>
+                    <Label x:Uid="addToInfoTip" Grid.Row="2" Name="addToInfoTip" Margin="-5,0,0,20" Width="30" Height="40" Content="&#8658;" FontSize="24" FontWeight="ExtraBold" />
+                    <ListBox Grid.Row="2" Grid.Column="1" x:Uid="listInfoTip" Name="listInfoTip" Margin="10,0,10,0" 
+                             ItemsSource="{Binding Path=InfoTips}" FontSize="12" ContextMenu="{StaticResource DetailsContextMenu}"
+                             dd:DragDrop.IsDragSource="True" dd:DragDrop.IsDropTarget="True" dd:DragDrop.DropHandler="{Binding}">
+                        <ListBox.InputBindings>
+                            <KeyBinding x:Uid="KeyBinding_9" Command="Delete" Gesture="Del" CommandParameter="Keystroke"/>
+                            <KeyBinding x:Uid="KeyBinding_10" Command="Replace" Gesture="CTRL+T" CommandParameter="Keystroke"/>
+                        </ListBox.InputBindings>
+                        <ListBox.CommandBindings>
+                            <CommandBinding x:Uid="CommandBinding_10" Command="Delete" CanExecute="PropertyChange_CanExecute" Executed="RemoveInfoTip_Executed"/>
+                            <CommandBinding x:Uid="CommandBinding_11" Command="Replace" CanExecute="PropertyChange_CanExecute" Executed="ToggleAsterisk_Executed"/>
+                        </ListBox.CommandBindings>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:Uid="DataTemplate_5">
+                                <TextBlock x:Uid="TextBlock_8" Text="{Binding Path=NameString}" />
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>  
             </Grid>
             <Grid x:Uid="Grid_10" Grid.Row="2">
                 <StackPanel x:Uid="StackPanel_1" Orientation="Horizontal" FlowDirection="RightToLeft">

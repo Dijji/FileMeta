@@ -28,7 +28,8 @@ namespace FileMetadataAssociationManager
         public List<TreeItem> AllProperties { get { return state.AllProperties; } }
 
         public ObservableCollection<TreeItem> FullDetails { get { return selectedProfile == null ? null : selectedProfile.FullDetails; } }
-        public ObservableCollection<string> PreviewDetails { get { return selectedProfile == null ? null : selectedProfile.PreviewDetails; } }
+        public ObservableCollection<PropertyListEntry> PreviewDetails { get { return selectedProfile == null ? null : selectedProfile.PreviewDetails; } }
+        public ObservableCollection<PropertyListEntry> InfoTips { get { return selectedProfile == null ? null : selectedProfile.InfoTips; } }
 
         public Profile SelectedProfile 
         {
@@ -41,6 +42,7 @@ namespace FileMetadataAssociationManager
                     OnPropertyChanged("SelectedProfile");
                     OnPropertyChanged("FullDetails");
                     OnPropertyChanged("PreviewDetails");
+                    OnPropertyChanged("InfoTips");
                 }
             }
         }
@@ -289,7 +291,7 @@ namespace FileMetadataAssociationManager
                 OnPropertyChanged("ProfileTree");
             }
         }
-
+        
         public void RemoveFullDetailsItem(TreeItem ti)
         {
             if (IsSelectedProfileWritable)
@@ -300,7 +302,7 @@ namespace FileMetadataAssociationManager
                 if ((PropType)ti.Item == PropType.Group)
                     ans = MessageBox.Show(String.Format(LocalizedMessages.RemovePropertyGroupQuestion, ti.Name),
                                           LocalizedMessages.RemovePropertyGroupHeader, MessageBoxButton.YesNo);
-                else if (SelectedProfile.PreviewDetails.Contains(ti.Name))
+                else if (SelectedProfile.HasPropertyInPreviewDetails(ti.Name) || SelectedProfile.HasPropertyInInfoTip(ti.Name))
                     ans = MessageBox.Show(String.Format(LocalizedMessages.RemovePropertyQuestion, ti.Name),
                                        LocalizedMessages.RemovePropertyHeader, MessageBoxButton.YesNo);
 
@@ -312,11 +314,38 @@ namespace FileMetadataAssociationManager
             }
         }
 
-        public void RemovePreviewDetailsItem(string property)
+        public void ToggleAsteriskFullDetailsItem(TreeItem ti)
+        {
+            if (IsSelectedProfileWritable)
+            {
+                SelectedProfile.ToggleAsteriskFullDetailsItem(ti);
+                IsDirty = true;
+            }
+        }
+
+        public void RemovePreviewDetailsItem(PropertyListEntry property)
         {
             if (IsSelectedProfileWritable)
             {
                 SelectedProfile.RemovePreviewDetailsProperty(property);
+                IsDirty = true;
+            }
+        }
+        
+        public void RemoveInfoTipItem(PropertyListEntry property)
+        {
+            if (IsSelectedProfileWritable)
+            {
+                SelectedProfile.RemoveInfoTipProperty(property);
+                IsDirty = true;
+            }
+        }
+
+        public void ToggleAsterisk(PropertyListEntry property)
+        {
+            if (IsSelectedProfileWritable)
+            {
+                property.ToggleAsterisk();
                 IsDirty = true;
             }
         }
@@ -399,7 +428,34 @@ namespace FileMetadataAssociationManager
                 // Reordering within Preview Details
                 else if (Source == ProfileControls.PreviewDetails && Target == ProfileControls.PreviewDetails)
                 {
-                    var property = dropInfo.Data as string;
+                    var property = dropInfo.Data as PropertyListEntry;
+
+                    if (property != null)
+                    {
+                        dropInfo.DropTargetAdorner = DropTargetAdorners.Insert;
+                        dropInfo.Effects = DragDropEffects.Move;
+                    }
+                }
+
+                // Dragging from Full Details to InfoTip
+                else if (Source == ProfileControls.FullDetails && Target == ProfileControls.InfoTip)
+                {
+                    var ti = dropInfo.Data as TreeItem;
+
+                    // Can only drag properties, not groups, and only if they are not already present
+                    if (ti != null &&
+                        (PropType)ti.Item == PropType.Normal &&
+                        !SelectedProfile.HasPropertyInInfoTip(ti.Name))
+                    {
+                        dropInfo.DropTargetAdorner = DropTargetAdorners.Insert;
+                        dropInfo.Effects = DragDropEffects.Copy;
+                    }
+                }
+
+                // Reordering within InfoTip
+                else if (Source == ProfileControls.InfoTip && Target == ProfileControls.InfoTip)
+                {
+                    var property = dropInfo.Data as PropertyListEntry;
 
                     if (property != null)
                     {
@@ -460,7 +516,7 @@ namespace FileMetadataAssociationManager
             }
             else if (Target == ProfileControls.PreviewDetails)
             {
-                string target = dropInfo.TargetItem as string;
+                PropertyListEntry target = dropInfo.TargetItem as PropertyListEntry;
                 bool before = (dropInfo.InsertPosition & ~RelativeInsertPosition.TargetItemCenter) == RelativeInsertPosition.BeforeTargetItem;
 
                 if (Source == ProfileControls.FullDetails)
@@ -470,8 +526,25 @@ namespace FileMetadataAssociationManager
                 }
                 else if (Source == ProfileControls.PreviewDetails)
                 {
-                    string property = (string)dropInfo.Data;
+                    PropertyListEntry property = (PropertyListEntry)dropInfo.Data;
                     SelectedProfile.MovePreviewDetailsProperty(property, target, before);
+                }
+                IsDirty = true;
+            }
+            else if (Target == ProfileControls.InfoTip)
+            {
+                PropertyListEntry target = dropInfo.TargetItem as PropertyListEntry;
+                bool before = (dropInfo.InsertPosition & ~RelativeInsertPosition.TargetItemCenter) == RelativeInsertPosition.BeforeTargetItem;
+
+                if (Source == ProfileControls.FullDetails)
+                {
+                    string property = ((TreeItem)dropInfo.Data).Name;
+                    SelectedProfile.AddInfoTipProperty(property, target, before);
+                }
+                else if (Source == ProfileControls.InfoTip)
+                {
+                    PropertyListEntry property = (PropertyListEntry)dropInfo.Data;
+                    SelectedProfile.MoveInfoTipProperty(property, target, before);
                 }
                 IsDirty = true;
             }

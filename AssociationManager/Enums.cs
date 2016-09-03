@@ -8,7 +8,8 @@ namespace FileMetadataAssociationManager
         Groups,
         Properties,
         FullDetails,
-        PreviewDetails
+        PreviewDetails,
+        InfoTip
     }
 
     public enum PropType

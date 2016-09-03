@@ -51,6 +51,8 @@ namespace FileMetadataAssociationManager
                 var lb = control as ListBox;
                 if (lb == listPreviewDetails)
                     return ProfileControls.PreviewDetails;
+                if (lb == listInfoTip)
+                    return ProfileControls.InfoTip;
                 if (lb == listPropGroup)
                     return ProfileControls.Groups;
             }
@@ -273,9 +275,25 @@ namespace FileMetadataAssociationManager
             view.RemoveFullDetailsItem(ti);
         }
 
-        private void RemovePreviewDetails_CanExecute(object sender, CanExecuteRoutedEventArgs e)
+        private void ToggleAsteriskFullDetails_CanExecute(object sender, CanExecuteRoutedEventArgs e)
         {
-            string property = DetermineProperty(e);
+            TreeItem ti = DetermineTreeItem(e);
+            bool canExecute = view.IsSelectedProfileWritable && ti != null && (PropType)ti.Item == PropType.Normal;
+
+            e.CanExecute = canExecute;
+            if (!canExecute)
+                e.Handled = true;
+        }
+
+        private void ToggleAsteriskFullDetails_Executed(object sender, ExecutedRoutedEventArgs e)
+        {
+            TreeItem ti = DetermineTreeItem(e);
+            view.ToggleAsteriskFullDetailsItem(ti);
+        }
+
+        private void PropertyChange_CanExecute(object sender, CanExecuteRoutedEventArgs e)
+        {
+            PropertyListEntry property = DetermineProperty(e);
             bool canExecute = view.IsSelectedProfileWritable && property != null;
 
             e.CanExecute = canExecute;
@@ -285,8 +303,20 @@ namespace FileMetadataAssociationManager
 
         private void RemovePreviewDetails_Executed(object sender, ExecutedRoutedEventArgs e)
         {
-            string property = DetermineProperty(e);
+            PropertyListEntry property = DetermineProperty(e);
             view.RemovePreviewDetailsItem(property);
+        }
+
+        private void RemoveInfoTip_Executed(object sender, ExecutedRoutedEventArgs e)
+        {
+            PropertyListEntry property = DetermineProperty(e);
+            view.RemoveInfoTipItem(property);
+        }
+
+        private void ToggleAsterisk_Executed(object sender, ExecutedRoutedEventArgs e)
+        {
+            PropertyListEntry property = DetermineProperty(e);
+            view.ToggleAsterisk(property);
         }
 
         private TreeItem DetermineTreeItem(CanExecuteRoutedEventArgs e)
@@ -335,9 +365,9 @@ namespace FileMetadataAssociationManager
             }
         }
 
-        private string DetermineProperty(CanExecuteRoutedEventArgs e)
+        private PropertyListEntry DetermineProperty(CanExecuteRoutedEventArgs e)
         {
-            string property = null;
+            PropertyListEntry property = null;
 
             if (e.Source is ListBox)
             {
@@ -345,7 +375,7 @@ namespace FileMetadataAssociationManager
                 if (e.OriginalSource is ListBoxItem)
                 {
                     ListBoxItem lbi = (ListBoxItem)e.OriginalSource;
-                    property = (string)lbi.Content;
+                    property = (PropertyListEntry)lbi.Content;
                 }
                 else
                 {
@@ -353,7 +383,7 @@ namespace FileMetadataAssociationManager
                     // A shortcut key was used, so take the currently selected item
                     if (e.Parameter as string != null && ((string)e.Parameter) == "Keystroke")
                     {
-                        property = (string)((ListBox)e.Source).SelectedItem;
+                        property = (PropertyListEntry)((ListBox)e.Source).SelectedItem;
                     }
                 }
             }
@@ -361,17 +391,17 @@ namespace FileMetadataAssociationManager
             return property;
         }
 
-        private string DetermineProperty(ExecutedRoutedEventArgs e)
+        private PropertyListEntry DetermineProperty(ExecutedRoutedEventArgs e)
         {
             if (e.OriginalSource is ListBoxItem)
             {
                 ListBoxItem lbi = (ListBoxItem)e.OriginalSource;
-                return (string)lbi.Content;
+                return (PropertyListEntry)lbi.Content;
             }
             else
             {
                 // ListBox
-                return (string)((ListBox)e.Source).SelectedItem;
+                return (PropertyListEntry)((ListBox)e.Source).SelectedItem;
             }
         }
 
