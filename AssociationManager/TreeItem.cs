@@ -97,5 +97,13 @@ namespace FileMetadataAssociationManager
             OnPropertyChanged("Name");
             OnPropertyChanged("EditableName");
         }
+
+        public TreeItem Clone()
+        {
+            TreeItem clone = new TreeItem(this.Name, this.Item);
+            foreach (var ti in this.Children)
+                clone.AddChild(ti.Clone());
+            return clone;
+        }
     }
 }

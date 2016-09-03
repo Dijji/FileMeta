@@ -30,7 +30,7 @@
             <TextBlock x:Uid="TextBlock_6" Text="To add metadata for extension:" TextWrapping="Wrap" FontSize="12" FontWeight="Bold"  Margin="5,0,0,0"/>
             <StackPanel x:Uid="StackPanel_2" Orientation="Horizontal" Margin="0,15,0,0">
                 <TextBlock x:Uid="TextBlock_7" Text="1." FontSize="12" Margin="5,0,0,0"/>
-                <TextBlock x:Uid="TextBlock_8" Text="Select one or more File Extensions with no Handler" FontSize="12" Width="175" Margin="5,0,0,0" TextWrapping="Wrap"/>
+                <TextBlock x:Uid="TextBlock_8" Text="Select one or more File Extensions" FontSize="12" Width="175" Margin="5,0,0,0" TextWrapping="Wrap"/>
             </StackPanel>
             <StackPanel x:Uid="StackPanel_3" Orientation="Horizontal" Margin="0,10,0,5">
                 <TextBlock x:Uid="TextBlock_9" Text="2." FontSize="12" Margin="5,0,0,0"/>
@@ -88,7 +88,7 @@
                         <GridViewColumn x:Uid="GridViewColumn_2" Header="Handler"  >
                             <GridViewColumn.CellTemplate>
                                 <DataTemplate x:Uid="DataTemplate_5">
-                                    <TextBlock x:Uid="TextBlock_17" Text="{Binding Path=PropertyHandlerTitle}" FontWeight="{Binding Path=Weight}" />
+                                    <TextBlock x:Uid="TextBlock_17" Text="{Binding Path=PropertyHandlerDisplay}" FontWeight="{Binding Path=Weight}" />
                                 </DataTemplate>
                             </GridViewColumn.CellTemplate>
                         </GridViewColumn>
@@ -107,7 +107,7 @@
                     <ColumnDefinition x:Uid="ColumnDefinition_3" Width="20"/>
                     <ColumnDefinition x:Uid="ColumnDefinition_4" Width="1*"/>
                 </Grid.ColumnDefinitions> 
-                <Label x:Uid="Label_4" Grid.Column="1" Content="Metadata properties editable in Explorer:" HorizontalAlignment="Center" Margin="0,0,10,0" FontSize="12"  VerticalAlignment="Bottom" />
+                <Label x:Uid="Label_4" Grid.Column="1" Content="Metadata properties shown in Explorer:" HorizontalAlignment="Center" Margin="0,0,10,0" FontSize="12"  VerticalAlignment="Bottom" />
             </Grid>
             <Grid x:Uid="Grid_5" Grid.Row="1">
                 <Grid.ColumnDefinitions>
@@ -124,14 +124,31 @@
                     <ColumnDefinition x:Uid="ColumnDefinition_7" Width="1*"/>
                     <ColumnDefinition x:Uid="ColumnDefinition_8" Width="1*"/>
                 </Grid.ColumnDefinitions>
-                <ListBox x:Uid="listPreviewDetails" Grid.Column="1" Name="listPreviewDetails" DataContext="{Binding SelectedProfile}" ItemsSource="{Binding Path=PreviewDetails}" FontSize="12">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate x:Uid="DataTemplate_3">
-                            <TextBlock x:Uid="TextBlock_5" Text="{Binding Path=.}" />
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-                <TreeView x:Uid="treeFullDetails" Grid.Column="2" Name="treeFullDetails" DataContext="{Binding SelectedProfile}" ItemsSource="{Binding Path=FullDetails}" FontSize="12">
+                <Grid x:Uid="Grid_11" Grid.Column="1">
+                    <Grid.RowDefinitions>
+                        <RowDefinition x:Uid="RowDefinition_8" Height="5*"/>
+                        <RowDefinition x:Uid="RowDefinition_9" Height="30"/>
+                        <RowDefinition x:Uid="RowDefinition_10" Height="3*"/>
+                    </Grid.RowDefinitions>
+                    <ListBox x:Uid="listPreviewDetails" Grid.Column="1" Name="listPreviewDetails" DataContext="{Binding ProfileToDisplay}" 
+                             ItemsSource="{Binding Path=PreviewDetails}" FontSize="12">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:Uid="DataTemplate_3">
+                                <TextBlock x:Uid="TextBlock_5" Text="{Binding Path=NameString}" />
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <Label x:Uid="Label_8" Grid.Row="1"  Content="Info Tip" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="12"/>
+                    <ListBox x:Uid="listInfoTip" Grid.Row="2" Name="listInfoTip"  DataContext="{Binding ProfileToDisplay}"
+                             ItemsSource="{Binding Path=InfoTips}" FontSize="12" >
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:Uid="DataTemplate_6">
+                                <TextBlock x:Uid="TextBlock_20" Text="{Binding Path=NameString}" />
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+                <TreeView x:Uid="treeFullDetails" Grid.Column="2" Name="treeFullDetails" DataContext="{Binding ProfileToDisplay}" ItemsSource="{Binding Path=FullDetails}" FontSize="12">
                     <TreeView.ItemTemplate>
                         <HierarchicalDataTemplate x:Uid="HierarchicalDataTemplate_2" ItemsSource="{Binding Path=Children}">
                             <Grid x:Uid="Grid_8">

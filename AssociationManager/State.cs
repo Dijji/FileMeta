@@ -66,15 +66,27 @@ namespace FileMetadataAssociationManager
 
         public void SortExtensions()
         {
-            // Sort by file extension, but group by our handler, other handlers, and finally no handler
+            // Sort by file extension, but group by our handler, chained handlers, other handlers, and finally no handler
             // This uses a Sort extension to ObservableCollection
             extensions.Sort((e, f) =>
-                e.OurHandler ?
-                    (f.OurHandler ? e.Name.CompareTo(f.Name) : -1) :
-                    f.OurHandler ? 1 :
-                        e.ForeignHandler ? (f.ForeignHandler ? e.Name.CompareTo(f.Name) : -1) :
-                        f.ForeignHandler ? 1 :
-                            e.Name.CompareTo(f.Name));
+            {
+                if (e.PropertyHandlerState != f.PropertyHandlerState)
+                { 
+                    if (e.PropertyHandlerState == HandlerState.Ours)
+                        return -1;
+                    else if (f.PropertyHandlerState == HandlerState.Ours)
+                        return 1;
+                    else if (e.PropertyHandlerState == HandlerState.Chained)
+                        return -1;
+                    else if (f.PropertyHandlerState == HandlerState.Chained)
+                        return 1;
+                    else if (e.PropertyHandlerState == HandlerState.Foreign)
+                        return -1;
+                    else if (f.PropertyHandlerState == HandlerState.Foreign)
+                        return 1;
+                }
+                return e.Name.CompareTo(f.Name);
+            });
             //Extensions.NotifyReset();
         }
 
@@ -255,36 +267,23 @@ namespace FileMetadataAssociationManager
             }
 
             // get all the current handlers
-            var handlers = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\PropertySystem\PropertyHandlers", false);
-            foreach (string name in handlers.GetSubKeyNames())
+            using (RegistryKey handlers = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\PropertySystem\PropertyHandlers", false))
             {
-                string handlerGuid = (string)handlers.OpenSubKey(name, false).GetValue(null);
-                string handlerTitle = null;
-                Extension e;
-                var cls = hkcr.OpenSubKey(@"CLSID\" + handlerGuid);
-                if (cls != null)
+                foreach (string name in handlers.GetSubKeyNames())
                 {
-                    handlerTitle = (string)cls.GetValue(null);
-                    if (handlerTitle == null)
+                    using (RegistryKey key = handlers.OpenSubKey(name, false))
                     {
-                        // No name - check for shell handlers
-                        if (handlerGuid == "{66742402-F9B9-11D1-A202-0000F81FEDEE}" ||
-                            handlerGuid == "{0AFCCBA6-BF90-4A4E-8482-0AC960981F5B}")
-                            handlerTitle = "Windows Shell";
-                        else
+                        string handlerGuid = (string)key.GetValue(null);
+                        string handlerChainedGuid = (string)key.GetValue(Extension.ChainedValueName);
+
+                        Extension e;
+                        if (dictExtensions.TryGetValue(name.ToLower(), out e))
                         {
-                            // Else resort to the dll path
-                            var ps = cls.OpenSubKey("InProcServer32");
-                            if (ps != null)
-                                handlerTitle = (string)ps.GetValue(null);
+                            e.RecordPropertyHandler(handlerGuid, handlerChainedGuid);
+
+                            e.IdentifyCurrentProfile();
                         }
                     }
-                }
-
-                if (dictExtensions.TryGetValue(name.ToLower(), out e))
-                {
-                    e.RecordPropertyHandler(handlerGuid, handlerTitle);
-                    e.IdentifyCurrentProfile();
                 }
             }
 

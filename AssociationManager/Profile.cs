@@ -14,20 +14,24 @@ namespace FileMetadataAssociationManager
     {
         const string FullDetailsOfficeProfile = "prop:System.PropGroup.Description;System.Title;System.Subject;System.Keywords;System.Category;System.Comment;System.Rating;System.PropGroup.Origin;System.Author;System.Document.LastAuthor;System.Document.RevisionNumber;System.Document.Version;System.ApplicationName;System.Company;System.Document.Manager;System.Document.DateCreated;System.Document.DateSaved;System.Document.DatePrinted;System.Document.TotalEditingTime;System.PropGroup.Content;System.ContentStatus;System.ContentType;System.Document.PageCount;System.Document.WordCount;System.Document.CharacterCount;System.Document.LineCount;System.Document.ParagraphCount;System.Document.Template;System.Document.Scale;System.Document.LinksDirty;System.Language;System.PropGroup.FileSystem;System.ItemNameDisplay;System.ItemType;System.ItemFolderPathDisplay;System.DateCreated;System.DateModified;System.Size;System.FileAttributes;System.OfflineAvailability;System.OfflineStatus;System.SharedWith;System.FileOwner;System.ComputerName";
         const string PreviewDetailsOfficeProfile = "prop:*System.DateModified;System.Author;System.Keywords;System.Rating;*System.Size;System.Title;System.Comment;System.Category;*System.Document.PageCount;System.ContentStatus;System.ContentType;*System.OfflineAvailability;*System.OfflineStatus;System.Subject;*System.DateCreated;*System.SharedWith";
+        const string InfoTipOfficeProfile = "prop:System.ItemTypeText;System.Size;System.DateModified;System.Document.PageCount";
 
         const string FullDetailsSimpleProfile = "prop:System.PropGroup.Description;System.Title;System.Subject;System.Keywords;System.Category;System.Comment;System.Rating;System.PropGroup.Origin;System.Author;System.Document.RevisionNumber";
         const string PreviewDetailsSimpleProfile = "prop:System.Title;System.Subject;System.Keywords;System.Category;System.Comment;System.Rating;System.Author;System.Document.RevisionNumber";
+        const string InfoTipSimpleProfile = "prop:System.ItemTypeText;System.Size;System.DateModified;System.Comment";
 
-        // These two properties are the 'master' representation of the details for the profile
+        // These three properties are the 'master' representation of the details for the profile
         private ObservableCollection<TreeItem> fullDetails = new ObservableCollection<TreeItem>();
-        private ObservableCollection<string> previewDetails = new ObservableCollection<string>();
+        private ObservableCollection<PropertyListEntry> previewDetails = new ObservableCollection<PropertyListEntry>();
+        private ObservableCollection<PropertyListEntry> infoTips = new ObservableCollection<PropertyListEntry>();
         private bool isReadOnly = false;
 
         public string Name { get; set; }
 
-        // These two properties get and set the registry and XML form of the details for the profile
+        // These three properties get and set the registry and XML form of the details for the profile
         public string FullDetailsString { get { return GetFullDetailsString(); } set { ParseFullDetailsString(value); } }
-        public string PreviewDetailsString { get { return GetPreviewDetailsString(); } set { ParsePreviewDetailsString(value); } }
+        public string PreviewDetailsString { get { return GetPropertiesString(PreviewDetails); } set { ParsePropertiesString(value, PreviewDetails); } }
+        public string InfoTipString { get { return GetPropertiesString(InfoTips); } set { ParsePropertiesString(value, InfoTips); } }
 
         [XmlIgnore]
         public State State { get; set; }
@@ -39,10 +43,16 @@ namespace FileMetadataAssociationManager
         public ObservableCollection<TreeItem> FullDetails { get { return fullDetails; } }
 
         [XmlIgnore]
-        public ObservableCollection<string> PreviewDetails { get { return previewDetails; } }
+        public ObservableCollection<PropertyListEntry> PreviewDetails { get { return previewDetails; } }
+
+        [XmlIgnore]
+        public ObservableCollection<PropertyListEntry> InfoTips { get { return infoTips; } }
 
         [XmlIgnore]
         public bool IsReadOnly { get { return isReadOnly; } }
+
+        [XmlIgnore]
+        public bool IsNull { get; set; }
 
         public Profile()
         {
@@ -51,8 +61,8 @@ namespace FileMetadataAssociationManager
         // Create a clone of this profile
         public Profile CreateClone()
         {
-            Profile p = new Profile {Name = this.Name, State = this.State, 
-                                     FullDetailsString = this.FullDetailsString, PreviewDetailsString = this.PreviewDetailsString };
+            Profile p = new Profile {Name = this.Name, State = this.State, FullDetailsString = this.FullDetailsString,
+                                     PreviewDetailsString = this.PreviewDetailsString, InfoTipString = this.InfoTipString };
             return p;
         }
 
@@ -61,7 +71,8 @@ namespace FileMetadataAssociationManager
         {
             return this.Name != p.Name ||
                    this.FullDetailsString != p.FullDetailsString ||
-                   this.PreviewDetailsString != p.PreviewDetailsString;
+                   this.PreviewDetailsString != p.PreviewDetailsString ||
+                   this.InfoTipString != p.InfoTipString;
         }
 
         // Copy the values from another profile
@@ -70,17 +81,21 @@ namespace FileMetadataAssociationManager
             this.Name = p.Name;
             this.FullDetailsString = p.FullDetailsString;
             this.PreviewDetailsString = p.PreviewDetailsString;
+            this.InfoTipString = p.InfoTipString;
+        }
+
+        // Merge the values from another profile
+        public void MergeFrom(Profile p)
+        {
+            MergeFullDetails(p.FullDetails);
+            MergeProperties(p.PreviewDetails, PreviewDetails);
+            MergeProperties(p.InfoTips, InfoTips);
         }
 
         public bool HasGroupInFullDetails(string group)
         {
             // Walk the top level of the tree
-            foreach (TreeItem ti in FullDetails)
-            {
-                if (ti.Name == group)
-                    return true;
-            }
-            return false;
+            return (FullDetails.FirstOrDefault(ti => ti.Name == group) != null);
         }
 
         public bool HasPropertyInFullDetails(string property)
@@ -88,11 +103,8 @@ namespace FileMetadataAssociationManager
             // Walk the the tree
             foreach (TreeItem ti in FullDetails)
             {
-                foreach (TreeItem tic in ti.Children)
-                {
-                    if (tic.Name == property)
-                        return true;
-                }
+                if (ti.Children.FirstOrDefault(tic =>  ModuloAsterisk(tic.Name) == property) != null)
+                    return true;
             }
 
             return false;
@@ -101,8 +113,13 @@ namespace FileMetadataAssociationManager
         public bool HasPropertyInPreviewDetails(string property)
         {
             // Check properties modulo the presence of an '*' prefix
-            return PreviewDetails.Contains(property) ||
-                   PreviewDetails.Contains("*" + property);
+            return HasPropertyInProperties(property, PreviewDetails);
+        }
+
+        public bool HasPropertyInInfoTip(string property)
+        {
+            // Check properties modulo the presence of an '*' prefix
+            return HasPropertyInProperties(property, InfoTips);
         }
 
         public void AddFullDetailsGroup(string group, TreeItem target, bool before)
@@ -135,17 +152,31 @@ namespace FileMetadataAssociationManager
             }
         }
 
-        public void AddPreviewDetailsProperty(string property, string target, bool before)
+        public void AddPreviewDetailsProperty(string property, PropertyListEntry target, bool before)
         {
-            InsertPreviewDetailsProperty(property, target, before);
+            InsertPropertyInProperties(PreviewDetails, new PropertyListEntry(property), target, before);
         }
 
-        public void MovePreviewDetailsProperty(string toMove, string target, bool before)
+        public void MovePreviewDetailsProperty(PropertyListEntry toMove, PropertyListEntry target, bool before)
         {
             if (toMove != target)
             {
                 PreviewDetails.Remove(toMove);
-                InsertPreviewDetailsProperty(toMove, target, before);
+                InsertPropertyInProperties(PreviewDetails, toMove, target, before);
+            }
+        }
+
+        public void AddInfoTipProperty(string property, PropertyListEntry target, bool before)
+        {
+            InsertPropertyInProperties(InfoTips, new PropertyListEntry(property), target, before);
+        }
+
+        public void MoveInfoTipProperty(PropertyListEntry toMove, PropertyListEntry target, bool before)
+        {
+            if (toMove != target)
+            {
+                InfoTips.Remove(toMove);
+                InsertPropertyInProperties(InfoTips, toMove, target, before);
             }
         }
 
@@ -200,38 +231,64 @@ namespace FileMetadataAssociationManager
             if ((PropType)toRemove.Item == PropType.Group)
             {
                 foreach (var ti in toRemove.Children)
+                {
                     RemovePreviewDetailsProperty(ti.Name);
+                    RemoveInfoTipProperty(ti.Name);
+                }
 
                 FullDetails.Remove(toRemove);
             }
             else
             {
                 RemovePreviewDetailsProperty(toRemove.Name);
+                RemoveInfoTipProperty(toRemove.Name);
                 toRemove.Parent.RemoveChild(toRemove);
+            }
+        }
+
+        public void ToggleAsteriskFullDetailsItem(TreeItem toToggle)
+        {
+            if ((PropType)toToggle.Item == PropType.Normal)
+            {
+                if (toToggle.Name.StartsWith("*"))
+                    toToggle.ChangeName(toToggle.Name.Substring(1));
+                 else
+                    toToggle.ChangeName("*" + toToggle.Name);
             }
         }
 
         public void RemovePreviewDetailsProperty(string property)
         {
-            int index = PreviewDetails.IndexOf(property);
-            if (index == -1 )
-                index = PreviewDetails.IndexOf("*" + property);
-            if (index >= 0)
-                PreviewDetails.RemoveAt(index);
+            RemovePropertyFromProperties(property, PreviewDetails);
         }
 
-        private void InsertPreviewDetailsProperty(string toInsert, string target, bool before)
+        public void RemovePreviewDetailsProperty(PropertyListEntry property)
+        {
+            PreviewDetails.Remove(property);
+        }
+
+        public void RemoveInfoTipProperty(string property)
+        {
+            RemovePropertyFromProperties(property, InfoTips);
+        }
+
+        public void RemoveInfoTipProperty(PropertyListEntry property)
+        {
+            InfoTips.Remove(property);
+        }
+
+        private void InsertPropertyInProperties(ObservableCollection<PropertyListEntry> properties, PropertyListEntry toInsert, PropertyListEntry target, bool before)
         {
             if (target == null)
                 // Drop at the end
-                PreviewDetails.Add(toInsert);
+                properties.Add(toInsert);
             else
             {
-                int index = PreviewDetails.IndexOf(target) + (before ? 0 : 1);
-                if (index < PreviewDetails.Count)
-                    PreviewDetails.Insert(index, toInsert);
+                int index = properties.IndexOf(target) + (before ? 0 : 1);
+                if (index < properties.Count)
+                    properties.Insert(index, toInsert);
                 else
-                    PreviewDetails.Add(toInsert);
+                    properties.Add(toInsert);
             }
         }
         
@@ -274,6 +331,30 @@ namespace FileMetadataAssociationManager
                 FullDetails.Add(ti);
         }
 
+        private void MergeFullDetails(IEnumerable<TreeItem> source)
+        {
+            foreach (var tiSource in source)
+            {
+                if (((PropType)tiSource.Item) == PropType.Group)
+                {
+                    var tiTarget = FullDetails.Where(ti => ti.Name == tiSource.Name).FirstOrDefault();
+                    if (tiTarget == null)
+                        FullDetails.Add(tiSource.Clone());
+                    else
+                    {
+                        foreach (var ti in tiSource.Children)
+                        {
+                            string s = ModuloAsterisk(ti.Name);
+                            if (tiTarget.Children.FirstOrDefault(t => ModuloAsterisk(t.Name) == s) == null)
+                            {
+                                tiTarget.AddChild(ti.Clone());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         private string GetFullDetailsString()
         {
             StringBuilder sb = new StringBuilder("prop:");
@@ -305,9 +386,9 @@ namespace FileMetadataAssociationManager
             return sb.ToString();
         }
 
-        private void ParsePreviewDetailsString(string registryEntry)
+        private void ParsePropertiesString(string registryEntry, ObservableCollection<PropertyListEntry> properties)
         {
-            PreviewDetails.Clear();
+            properties.Clear();
 
             if (registryEntry.StartsWith("prop:"))
                 registryEntry = registryEntry.Remove(0, 5);
@@ -315,41 +396,78 @@ namespace FileMetadataAssociationManager
             string[] props = registryEntry.Split(';');
 
             // This a simple list pf semicolon delimited names
-            // Some DSOFile names are prefixed with '*', but I don't know what this means, and we don't do it ourselves
+            // Some property names are prefixed with '*', we preserve it, but we don't do it ourselves
+            // MSDN says it means 'Do not show the property in the Preview Pane as instructed in the PreviewDetails registry key value',
+            // but it never seems to have any effect
             foreach (string prop in props)
             {
-                PreviewDetails.Add(prop);
+                if (prop.Length == 0)
+                    continue;
+                else 
+                    properties.Add(new PropertyListEntry(prop));
             }
         }
 
-        private string GetPreviewDetailsString()
+        public bool HasPropertyInProperties(string property, IEnumerable<PropertyListEntry> properties)
+        {
+            // Check properties modulo the presence of an '*' prefix
+            var s = ModuloAsterisk(property);
+            return (properties.FirstOrDefault(pe => pe.Name == s) != null);
+        }
+
+        private void MergeProperties(IEnumerable<PropertyListEntry> source, ObservableCollection<PropertyListEntry> target)
+        {
+            var result = target.Union<PropertyListEntry>(source, (a,b) => a.Name == b.Name).ToList();
+
+            target.Clear();
+            foreach (var s in result)
+                target.Add(s);
+        }
+
+        private void RemovePropertyFromProperties(string property, ObservableCollection<PropertyListEntry> properties)
+        {
+            string s = ModuloAsterisk(property);
+            int index = properties.FindIndex(pe => pe.Name == s);
+            if (index >= 0)
+                properties.RemoveAt(index);
+        }
+
+        private string GetPropertiesString(IEnumerable<PropertyListEntry> properties)
         {
             StringBuilder sb = new StringBuilder("prop:");
             bool first = true;
 
-            foreach (string prop in PreviewDetails)
+            foreach (PropertyListEntry prop in properties)
             {
                 if (!first)
                     sb.Append(";");
                 else
                     first = false;
-                sb.Append(prop);
+                sb.Append(prop.NameString);
             }
 
             return sb.ToString();
+        }
+
+        private string ModuloAsterisk(string s)
+        {
+            if (s.StartsWith("*"))
+                return s.Substring(1);
+            else
+                return s;
         }
 
         public static List<Profile> GetBuiltinProfiles(State state)
         {
             List<Profile> ps = new List<Profile>();
 
-            Profile p = new Profile { Name = "Simple", State = state, 
-                                      FullDetailsString = FullDetailsSimpleProfile, PreviewDetailsString =  PreviewDetailsSimpleProfile};
+            Profile p = new Profile { Name = "Simple", State = state, FullDetailsString = FullDetailsSimpleProfile,
+                                      PreviewDetailsString = PreviewDetailsSimpleProfile, InfoTipString = InfoTipSimpleProfile };
             p.isReadOnly = true;
             ps.Add(p);
 
-            p = new Profile { Name = "Office DSOfile", State = state, 
-                              FullDetailsString = FullDetailsOfficeProfile, PreviewDetailsString = PreviewDetailsOfficeProfile };
+            p = new Profile { Name = "Office DSOfile", State = state, FullDetailsString = FullDetailsOfficeProfile,
+                              PreviewDetailsString = PreviewDetailsOfficeProfile, InfoTipString = InfoTipOfficeProfile };
             p.isReadOnly = true;
             ps.Add(p);
 
@@ -364,5 +482,7 @@ namespace FileMetadataAssociationManager
             else 
                 return String.Format("{0} ({1})", LocalizedMessages.NewProfileName, index);
         }
+
+
     }
 }

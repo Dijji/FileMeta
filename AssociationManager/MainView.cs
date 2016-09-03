@@ -7,6 +7,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Windows;
+using FileMetadataAssociationManager.Resources;
 
 namespace FileMetadataAssociationManager
 {
@@ -20,31 +21,60 @@ namespace FileMetadataAssociationManager
         {
             None,
             Ours,
+            Foreign,
             Other,
         }
         private HandlerSet? handlersSelected;
         private bool sortRequired = false;
+        private Profile customPreviewProfileBase = null;  // Baseline profile for selected foreign handler
+        private Profile customPreviewProfile = null;      // Baseline profile merged with selected profile
+        private static Profile noProfile = new Profile { Name = LocalizedMessages.NullProfile, IsNull = true };  // Dummy profile to allow selection of <None>
 
         public ObservableCollectionWithReset<Extension> Extensions { get { return state.Extensions; } }
         public string Restrictions { get { return state.Restrictions; } }
         public int RestrictionLevel { get { return state.RestrictionLevel; } }
 
         public ObservableCollection<TreeItem> FullDetails { get { return selectedProfile == null ? null : selectedProfile.FullDetails; } }
-        public ObservableCollection<string> PreviewDetails { get { return selectedProfile == null ? null : selectedProfile.PreviewDetails; } }
+        public ObservableCollection<PropertyListEntry> PreviewDetails { get { return selectedProfile == null ? null : selectedProfile.PreviewDetails; } }
 
         public List<Extension> SelectedExtensions { get { return selectedExtensions; } }
 
+        public Profile ProfileToDisplay { get { return customPreviewProfile ?? SelectedProfile; } }
+
         public Profile SelectedProfile
         {
-            get { return selectedProfile; }
+            get
+            {
+                if (selectedProfile == null)
+                    return noProfile;
+                else
+                    return selectedProfile;
+            }
             set
             {
-                if (selectedProfile != value)
+                Profile newProfile = value;
+
+                if (newProfile == noProfile)
+                    newProfile = null;
+
+                if (selectedProfile != newProfile)
                 {
-                    selectedProfile = value;
+                    selectedProfile = newProfile;
+                    if (customPreviewProfileBase != null)
+                    {
+                        if (selectedProfile != null)
+                        {
+                            customPreviewProfile = customPreviewProfileBase.CreateClone();
+                            customPreviewProfile.MergeFrom(selectedProfile);
+                        }
+                        else
+                            customPreviewProfile = customPreviewProfileBase;
+                    }
                     OnPropertyChanged("SelectedProfile");
+                    OnPropertyChanged("ProfileToDisplay");
                     OnPropertyChanged("FullDetails");
                     OnPropertyChanged("PreviewDetails");
+                    OnPropertyChanged("InfoTips");
                 }
             }
         }
@@ -53,6 +83,7 @@ namespace FileMetadataAssociationManager
         {
             get
             {
+                yield return noProfile;
                 foreach (Profile p in state.BuiltInProfiles)
                 {
                     yield return p;
@@ -64,14 +95,14 @@ namespace FileMetadataAssociationManager
             }
         }
 
-        public bool CanChooseProfile { get { return handlersSelected == HandlerSet.None; } }
+        public bool CanChooseProfile { get { return handlersSelected == HandlerSet.None || handlersSelected == HandlerSet.Foreign; } }
 
         public bool CanAddPropertyHandlerEtc
         {
             get
             {
-                return Extension.IsOurPropertyHandlerRegistered && SelectedProfile != null &&
-                       handlersSelected == HandlerSet.None;
+                return Extension.IsOurPropertyHandlerRegistered && SelectedProfile != null && 
+                       (handlersSelected == HandlerSet.None || handlersSelected == HandlerSet.Foreign);
             }
         }
 
@@ -111,12 +142,34 @@ namespace FileMetadataAssociationManager
 
             if (SelectedExtensions.Count > 0 && SelectedProfile != null)
             {
+                if (SelectedExtensions.First().PropertyHandlerState == HandlerState.None && SelectedProfile.IsNull)
+                {
+                    MessageBox.Show(LocalizedMessages.PleaseSelectProfile, LocalizedMessages.SetupHandler);
+                    return true;
+                }
+                else if (SelectedExtensions.First().PropertyHandlerState == HandlerState.Foreign)
+                {
+                    if (SelectedProfile.IsNull)
+                    {
+                        if (MessageBox.Show(SelectedExtensions.Count > 1 ? LocalizedMessages.ConfirmCustomNoMerges : LocalizedMessages.ConfirmCustomNoMerge, 
+                            LocalizedMessages.SetupHandler, MessageBoxButton.YesNo) == MessageBoxResult.No)
+                            return true;
+                    }
+                    else
+                    {
+                        if (MessageBox.Show(string.Format(SelectedExtensions.Count > 1 ? LocalizedMessages.ConfirmCustomMerges : LocalizedMessages.ConfirmCustomMerge, 
+                            SelectedProfile.Name), LocalizedMessages.SetupHandler, MessageBoxButton.YesNo) == MessageBoxResult.No)
+                            return true;
+                    }
+                }
+
                 foreach (Extension ext in SelectedExtensions)
                 {
                     success &= ext.SetupHandlerForExtension(SelectedProfile);
                 }
             }
 
+            OnPropertyChanged("Profiles");
             DeterminePossibleActions();
             SortRequired = true;
 
@@ -149,7 +202,7 @@ namespace FileMetadataAssociationManager
             handlersSelected = null;
             foreach (Extension e in SelectedExtensions)
             {
-                if (!e.HasHandler)
+                if (e.PropertyHandlerState == HandlerState.None)
                 {
                     if (handlersSelected == null)
                         handlersSelected = HandlerSet.None;
@@ -161,7 +214,19 @@ namespace FileMetadataAssociationManager
                         break;
                     }
                 }
-                else if (e.OurHandler)
+                else if (e.PropertyHandlerState == HandlerState.Foreign)
+                {
+                    if (handlersSelected == null)
+                        handlersSelected = HandlerSet.Foreign;
+                    else if (handlersSelected == HandlerSet.Foreign)
+                        continue;
+                    else
+                    {
+                        handlersSelected = HandlerSet.Other;
+                        break;
+                    }
+                }
+                else if (e.PropertyHandlerState == HandlerState.Ours || e.PropertyHandlerState == HandlerState.Chained)
                 {
                     if (handlersSelected == null)
                         handlersSelected = HandlerSet.Ours;
@@ -182,20 +247,32 @@ namespace FileMetadataAssociationManager
             if (handlersSelected == null)
                 handlersSelected = HandlerSet.Other;
 
+            customPreviewProfile = null;
+            customPreviewProfileBase = null;
+
             switch (handlersSelected)
             {
-                case HandlerSet.None:
-                    if (SelectedProfile == null)
-                        SelectedProfile = state.BuiltInProfiles.First();
-                    break;
                 case HandlerSet.Ours:
                     SelectedProfile = SelectedExtensions.First().Profile;
                     break;
+                case HandlerSet.Foreign:
+                {
+                    if (SelectedExtensions.Count == 1)
+                    {
+                        customPreviewProfileBase = SelectedExtensions.First().GetDefaultCustomProfile();
+                        customPreviewProfile = customPreviewProfileBase;
+                    }
+
+                    SelectedProfile = null;
+                    break;
+                }
+                case HandlerSet.None:
                 case HandlerSet.Other:
                     SelectedProfile = null;
                     break;
             }
 
+            OnPropertyChanged("ProfileToDisplay");
             OnPropertyChanged("CanChooseProfile");
             OnPropertyChanged("CanAddPropertyHandlerEtc");
             OnPropertyChanged("CanRemovePropertyHandlerEtc");

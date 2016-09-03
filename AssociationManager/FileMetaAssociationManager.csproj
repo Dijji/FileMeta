@@ -110,6 +110,7 @@
     <Compile Include="Extensions.cs" />
     <Compile Include="ObservableCollectionWithReset.cs" />
     <Compile Include="Profile.cs" />
+    <Compile Include="PropertyListEntry.cs" />
     <Compile Include="Resources\LocalizedMessages.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
