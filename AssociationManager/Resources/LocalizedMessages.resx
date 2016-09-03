@@ -169,13 +169,13 @@
     <value>Remove Property Group</value>
   </data>
   <data name="RemovePropertyGroupQuestion" xml:space="preserve">
-    <value>Do you want to remove {0} and its contents from Full details and Preview Panel?</value>
+    <value>Do you want to remove {0} and its contents from Full details , Preview Panel and Info Tip?</value>
   </data>
   <data name="RemovePropertyHeader" xml:space="preserve">
     <value>Remove Property</value>
   </data>
   <data name="RemovePropertyQuestion" xml:space="preserve">
-    <value>Do you want to remove {0} from Full details and Preview Panel?</value>
+    <value>Do you want to remove {0} from Full details, Preview Panel and Info Tip?</value>
   </data>
   <data name="UseDragDrop" xml:space="preserve">
     <value>Use drag and drop to populate Full details and Preview Panel, and reorder their contents</value>
@@ -209,5 +209,26 @@
   </data>
   <data name="XmlWriteError" xml:space="preserve">
     <value>Error "{0}" updating XML store of saved custom profiles</value>
+  </data>
+  <data name="ConfirmCustomMerge" xml:space="preserve">
+    <value>This will extend the existing handler, and create a custom profile for the extension using its existing properties plus the properties from the ‘{0}’ profile. Do you want to proceed?</value>
+  </data>
+  <data name="ConfirmCustomNoMerge" xml:space="preserve">
+    <value>This will extend the existing handler, and create a custom profile for the extension using its existing properties. Do you want to proceed?</value>
+  </data>
+  <data name="NullProfile" xml:space="preserve">
+    <value>&lt;None&gt;</value>
+  </data>
+  <data name="PleaseSelectProfile" xml:space="preserve">
+    <value>Please select a profile other than &lt;None&gt;</value>
+  </data>
+  <data name="SetupHandler" xml:space="preserve">
+    <value>Handler addition</value>
+  </data>
+  <data name="ConfirmCustomMerges" xml:space="preserve">
+    <value>This will extend the existing handlers, and create a custom profile for each extension using its existing properties plus the properties from the ‘{0}’ profile. Do you want to proceed?</value>
+  </data>
+  <data name="ConfirmCustomNoMerges" xml:space="preserve">
+    <value>This will extend the existing handlers, and create a custom profile for each extension using its existing properties. Do you want to proceed?</value>
   </data>
 </root>
