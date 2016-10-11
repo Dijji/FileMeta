@@ -9,7 +9,7 @@ using System.Text;
 using System.Xml.Serialization;
 using Microsoft.Win32;
 using System.Runtime.InteropServices;
-using FileMetadataAssociationManager.Resources;
+using AssociationMessages;
 
 namespace FileMetadataAssociationManager
 {
@@ -21,6 +21,7 @@ namespace FileMetadataAssociationManager
         private List<TreeItem> allProperties = new List<TreeItem>();
         private List<string> groupProperties = new List<string>();
         private SavedState savedState = new SavedState();
+        private bool nonDefaultStateFileLoaded = false;
         private bool hasChanged = false;
 
         public ObservableCollectionWithReset<Extension> Extensions { get { return extensions; } }
@@ -58,9 +59,9 @@ namespace FileMetadataAssociationManager
             }
         }
 
-        public void Populate()
+        public void Populate(string savedStateFile = null)
         {
-            PopulateProfiles();
+            PopulateProfiles(savedStateFile);
             PopulateExtensions();
         }
 
@@ -90,7 +91,8 @@ namespace FileMetadataAssociationManager
             //Extensions.NotifyReset();
         }
 
-
+#if CmdLine
+#else
         public void PopulateSystemProperties()
         {
             IPropertyDescriptionList propertyDescriptionList = null;
@@ -200,42 +202,122 @@ namespace FileMetadataAssociationManager
                 return sb.ToString();
             }
         }
+#endif
 
-        public void LoadSavedState()
+        public void LoadSavedState(string savedStateFile)
         {
-            try
-            {
-                DirectoryInfo di = ObtainDataDirectory();
-                FileInfo fi = di.GetFiles().Where(f => f.Name == "SavedState.xml").FirstOrDefault();
+            var fiDefault = GetDefaultSavedStateInfo();
 
-                if (fi != null)
-                {
-                    XmlSerializer x = new XmlSerializer(typeof(SavedState));
-                    TextReader reader = new StreamReader(fi.FullName);
-                    SavedState loaded = (SavedState)x.Deserialize(reader);
-                    reader.Close();
-                    savedState = loaded;
-                }
-            }
-            catch (Exception ex)
+            // If a state file has been specified, use it 
+            if (savedStateFile != null)
             {
-                System.Windows.MessageBox.Show(String.Format(LocalizedMessages.XmlParseError, ex.Message), LocalizedMessages.ErrorHeader);
+                var fi = new FileInfo(savedStateFile);
+                if (!fi.Exists)
+                    throw new AssocMgrException
+                    {
+                        Description = String.Format(LocalizedMessages.MissingDefinitionsFile, savedStateFile),
+                        Exception = null,
+                        ErrorCode = WindowsErrorCodes.ERROR_FILE_NOT_FOUND
+                    };
+
+                savedState = LoadSavedState(fi); 
+
+                // If it's not just the default one, remember that we used a non-default file
+                if (String.Compare(savedStateFile, fiDefault.FullName, true) != 0)
+                    nonDefaultStateFileLoaded = true;
+            }
+            else if (fiDefault.Exists)
+            {
+                savedState = LoadSavedState(fiDefault); 
+            }
+        }
+
+        public void StoreUpdatedProfile(Profile p)
+        {
+            if (!nonDefaultStateFileLoaded)
+                StoreSavedState();
+            else
+            {
+                SavedState newState;
+                var fiDefault = GetDefaultSavedStateInfo();
+
+                if (fiDefault.Exists)
+                {
+                    newState = LoadSavedState(fiDefault);
+                    newState.CustomProfiles.RemoveAll(x => x.Name == p.Name);
+                }
+                else
+                    newState = new SavedState();
+
+                newState.CustomProfiles.Add(p);
+                StoreSavedStateAsDefault(newState);
             }
         }
 
         public void StoreSavedState()
         {
+            StoreSavedStateAsDefault(savedState);
+        }
+
+        private FileInfo GetDefaultSavedStateInfo()
+        {
+            DirectoryInfo di = ObtainDataDirectory();
+            return new FileInfo(di.FullName + @"\SavedState.xml");
+        }
+
+        private SavedState LoadSavedState(FileInfo fi)
+        {
             try
             {
                 XmlSerializer x = new XmlSerializer(typeof(SavedState));
-                TextWriter writer = new StreamWriter(ObtainDataDirectory().FullName + @"\SavedState.xml");
-                x.Serialize(writer, savedState);
-                writer.Close();
+                using (TextReader reader = new StreamReader(fi.FullName))
+                {
+                    return (SavedState)x.Deserialize(reader);
+                }
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show(String.Format(LocalizedMessages.XmlWriteError, ex.Message), LocalizedMessages.ErrorHeader);
+                if (ex is AssocMgrException)
+                    throw ex;
+                else
+                    throw new AssocMgrException { Description = LocalizedMessages.XmlParseError, Exception = ex, ErrorCode = WindowsErrorCodes.ERROR_XML_PARSE_ERROR };
             }
+        }
+
+        private void StoreSavedStateAsDefault(SavedState state)
+        {
+            var fi = GetDefaultSavedStateInfo();
+            try
+            {
+                XmlSerializer x = new XmlSerializer(typeof(SavedState));
+                using (TextWriter writer = new StreamWriter(fi.FullName))
+                {
+                    x.Serialize(writer, state);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new AssocMgrException { Description = LocalizedMessages.XmlWriteError, Exception = ex, ErrorCode = WindowsErrorCodes.ERROR_XML_PARSE_ERROR };
+            }
+        }
+
+        public Extension CreateExtension(string name)
+        {
+            Extension e = new Extension() { Name = name, State = this };
+            e.RecordPropertyHandler(null, null);
+            dictExtensions.Add(name.ToLower(), e);
+            Extensions.Add(e);
+
+            return e;
+        }
+
+        public Extension GetExtensionByName(string name)
+        {
+            Extension e;
+            if (dictExtensions.TryGetValue(name.ToLower(), out e))
+                return e;
+            else
+                return null;
         }
 
         public IEnumerable<Extension> GetExtensionsUsingProfile(Profile p)
@@ -243,12 +325,17 @@ namespace FileMetadataAssociationManager
             return Extensions.Where(e => e.Profile == p);
         }
 
-        private void PopulateProfiles()
+        public Profile GetProfileByName(string name)
+        {
+            return BuiltInProfiles.Concat(CustomProfiles).FirstOrDefault(x => String.Compare(x.Name, name, true) == 0);
+        }
+
+        private void PopulateProfiles(string savedStateFile)
         {
             foreach (Profile p in Profile.GetBuiltinProfiles(this))
                 BuiltInProfiles.Add(p);
 
-            LoadSavedState();
+            LoadSavedState(savedStateFile);
         }
 
         private void PopulateExtensions()

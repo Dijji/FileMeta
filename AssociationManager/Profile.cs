@@ -6,7 +6,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Xml.Serialization;
-using FileMetadataAssociationManager.Resources;
+using AssociationMessages;
 
 namespace FileMetadataAssociationManager
 {
