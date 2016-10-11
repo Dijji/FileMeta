@@ -3,8 +3,8 @@ SETLOCAL
 :: Run this with CommandLineTest as the working folder
 ::
 :: If FileMeta.exe is not on the path, tweak the following line to point to its location
-SET _filemeta="FileMeta.exe"
-::SET _filemeta="C:\Program Files (x86)\File Metadata\FileMeta.exe"
+::SET _filemeta="FileMeta.exe"
+SET _filemeta="C:\Program Files\File Metadata\FileMeta.exe"
 
 ECHO Setting up test files...
 type NUL > allprops.txt
