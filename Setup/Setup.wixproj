@@ -47,6 +47,14 @@
     </WixExtension>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\CommandLineAssociationManager\CommandLineAssociationManager.csproj">
+      <Name>CommandLineAssociationManager</Name>
+      <Project>{4198d440-3c47-4183-b28a-e2b10fdef045}</Project>
+      <Private>True</Private>
+      <DoNotHarvest>True</DoNotHarvest>
+      <RefProjectOutputGroups>Binaries;Content;Satellites</RefProjectOutputGroups>
+      <RefTargetDir>INSTALLFOLDER</RefTargetDir>
+    </ProjectReference>
     <ProjectReference Include="..\CommandLine\FileMeta.vcxproj">
       <Name>CommandLine</Name>
       <Project>{8e86ebf1-8b1f-4035-a21b-3a566ff04c7f}</Project>
