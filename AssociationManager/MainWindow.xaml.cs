@@ -9,7 +9,7 @@ using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.ComponentModel;
-using FileMetadataAssociationManager.Resources;
+using AssociationMessages;
 
 namespace FileMetadataAssociationManager
 {
@@ -29,7 +29,14 @@ namespace FileMetadataAssociationManager
             this.DataContext = view;
             view.PropertyChanged += new PropertyChangedEventHandler(view_PropertyChanged);
 
-            state.Populate();
+            try
+            {
+                state.Populate();
+            }
+            catch (AssocMgrException ae)
+            {
+                System.Windows.MessageBox.Show(ae.DisplayString, LocalizedMessages.ErrorHeader);
+            }
          }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -86,15 +93,26 @@ namespace FileMetadataAssociationManager
 
         private void addHandler_Click(object sender, RoutedEventArgs e)
         {
-            bool success = view.AddHandlers();
-
-            if (!success)
-                MessageBox.Show(LocalizedMessages.HandlerSetupIssues);
+            try
+            {
+                view.AddHandlers();
+            }
+            catch (AssocMgrException ae)
+            {
+                System.Windows.MessageBox.Show(ae.DisplayString, LocalizedMessages.ErrorHeader);
+            }
         }
 
         private void removeHandler_Click(object sender, RoutedEventArgs e)
         {
-            view.RemoveHandlers();
+            try
+            {
+                view.RemoveHandlers();
+            }
+            catch (AssocMgrException ae)
+            {
+                System.Windows.MessageBox.Show(ae.DisplayString, LocalizedMessages.ErrorHeader);
+            }
         }
 
         private void refresh_Click(object sender, RoutedEventArgs e)
@@ -143,6 +161,18 @@ namespace FileMetadataAssociationManager
                 p.StartInfo.FileName = Environment.GetEnvironmentVariable("SystemRoot") + @"\explorer.exe";
                 p.Start();
                 state.HasChanged = false;
+            }
+        }
+
+        private void updateRegistry_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                view.RefreshRegistry();
+            }
+            catch (AssocMgrException ae)
+            {
+                System.Windows.MessageBox.Show(ae.DisplayString, LocalizedMessages.ErrorHeader);
             }
         }
     }

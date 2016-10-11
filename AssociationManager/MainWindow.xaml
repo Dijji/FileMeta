@@ -46,17 +46,19 @@
             </ComboBox>
             <TextBlock x:Uid="TextBlock_11" Text="3. " FontSize="12" Margin="5,5,0,5"/>
             <Button x:Uid="addHandler" Content="Add File Meta Handler" Height="23" Name="addHandler" Margin="10,0,15,0" FontSize="12" Click="addHandler_Click" IsEnabled="{Binding Path=CanAddPropertyHandlerEtc}" />
-            <TextBlock x:Uid="TextBlock_12" Text="To remove handler for extension:" TextWrapping="Wrap" FontSize="12" FontWeight="Bold" Margin="5,60,0,0"/>
+            <TextBlock x:Uid="TextBlock_12" Text="To remove handler for extension:" TextWrapping="Wrap" FontSize="12" FontWeight="Bold" Margin="5,50,0,0"/>
             <StackPanel x:Uid="StackPanel_4" Orientation="Horizontal" Margin="0,15,0,0">
                 <TextBlock x:Uid="TextBlock_13" Text="1." FontSize="12" Margin="5,0,0,0"/>
                 <TextBlock x:Uid="TextBlock_14" Text="Select one or more File Extensions with the File Meta Property Handler" FontSize="12" Width="175" Margin="5,0,0,0" TextWrapping="Wrap"/>
             </StackPanel>
             <TextBlock x:Uid="TextBlock_15" Text="2." FontSize="12" Margin="5,10,0,5"/>
             <Button x:Uid="removeHandler" Content="Remove File Meta Handler" Height="23" Name="removeHandler" Margin="10,0,15,0" FontSize="12" Click="removeHandler_Click" IsEnabled="{Binding Path=CanRemovePropertyHandlerEtc}" />
-            <TextBlock x:Uid="TextBlock_18" Text="To manage custom profiles:" TextWrapping="Wrap" FontSize="12" FontWeight="Bold" Margin="5,60,0,10"/>
+            <TextBlock x:Uid="TextBlock_18" Text="To manage custom profiles:" TextWrapping="Wrap" FontSize="12" FontWeight="Bold" Margin="5,50,0,10"/>
             <Button x:Uid="advanced" Content="Custom Profiles..." Height="23" Name="profiles" Margin="10,0,15,0" FontSize="12" Click="profiles_Click"  />
-            <TextBlock x:Uid="TextBlock_19" Text="To restart Explorer:" TextWrapping="Wrap" FontSize="12" FontWeight="Bold" Margin="5,60,0,10"/>
+            <TextBlock x:Uid="TextBlock_19" Text="To restart Explorer:" TextWrapping="Wrap" FontSize="12" FontWeight="Bold" Margin="5,40,0,10"/>
             <Button x:Uid="restartExplorer" Content="Restart Explorer" Height="23" Name="restartExplorer" Margin="10,0,15,0" FontSize="12" Click="restartExplorer_Click"  />
+            <TextBlock x:Uid="TextBlock_19a" Text="To update registry for 1.5:" TextWrapping="Wrap" FontSize="12" FontWeight="Bold" Margin="5,40,0,10"/>
+            <Button x:Uid="updateRegistry" Content="Update Registry" Height="23" Name="updateRegistry" Margin="10,0,15,0" FontSize="12" Click="updateRegistry_Click"  />
             <TextBlock x:Uid="Label_3" Text="{Binding Path=Restrictions}" TextWrapping="Wrap" Margin="5,90,0,0" FontSize="12" Style="{StaticResource ColorByRestriction}" />
         </StackPanel>
         <Grid x:Uid="Grid_2" Grid.Column="1">

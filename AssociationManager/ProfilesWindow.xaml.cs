@@ -12,7 +12,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
-using FileMetadataAssociationManager.Resources;
+using AssociationMessages;
 
 namespace FileMetadataAssociationManager
 {
@@ -72,7 +72,14 @@ namespace FileMetadataAssociationManager
 
         private void cbApply_Click(object sender, RoutedEventArgs e)
         {
-            view.ApplyChanges();
+            try
+            {
+                view.ApplyChanges();
+            }
+            catch (AssocMgrException ae)
+            {
+                System.Windows.MessageBox.Show(ae.DisplayString, LocalizedMessages.ErrorHeader);
+            }
         }
 
         private void cbCancel_Click(object sender, RoutedEventArgs e)
@@ -82,8 +89,15 @@ namespace FileMetadataAssociationManager
 
         private void cbOK_Click(object sender, RoutedEventArgs e)
         {
-            if (view.ApplyChanges())
-                this.Close();
+            try
+            {
+                if (view.ApplyChanges())
+                    this.Close();
+            }
+            catch (AssocMgrException ae)
+            {
+                System.Windows.MessageBox.Show(ae.DisplayString, LocalizedMessages.ErrorHeader);
+            }
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)

@@ -7,7 +7,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Windows;
-using FileMetadataAssociationManager.Resources;
+using AssociationMessages;
 
 namespace FileMetadataAssociationManager
 {
@@ -136,16 +136,14 @@ namespace FileMetadataAssociationManager
             DeterminePossibleActions();
         }
 
-        public bool AddHandlers()
+        public void AddHandlers()
         {
-            bool success = true;
-
             if (SelectedExtensions.Count > 0 && SelectedProfile != null)
             {
                 if (SelectedExtensions.First().PropertyHandlerState == HandlerState.None && SelectedProfile.IsNull)
                 {
                     MessageBox.Show(LocalizedMessages.PleaseSelectProfile, LocalizedMessages.SetupHandler);
-                    return true;
+                    return;
                 }
                 else if (SelectedExtensions.First().PropertyHandlerState == HandlerState.Foreign)
                 {
@@ -153,27 +151,25 @@ namespace FileMetadataAssociationManager
                     {
                         if (MessageBox.Show(SelectedExtensions.Count > 1 ? LocalizedMessages.ConfirmCustomNoMerges : LocalizedMessages.ConfirmCustomNoMerge, 
                             LocalizedMessages.SetupHandler, MessageBoxButton.YesNo) == MessageBoxResult.No)
-                            return true;
+                            return;
                     }
                     else
                     {
                         if (MessageBox.Show(string.Format(SelectedExtensions.Count > 1 ? LocalizedMessages.ConfirmCustomMerges : LocalizedMessages.ConfirmCustomMerge, 
                             SelectedProfile.Name), LocalizedMessages.SetupHandler, MessageBoxButton.YesNo) == MessageBoxResult.No)
-                            return true;
+                            return;
                     }
                 }
 
                 foreach (Extension ext in SelectedExtensions)
                 {
-                    success &= ext.SetupHandlerForExtension(SelectedProfile);
+                    ext.SetupHandlerForExtension(SelectedProfile, true);
                 }
             }
 
             OnPropertyChanged("Profiles");
             DeterminePossibleActions();
             SortRequired = true;
-
-            return success;
         }
 
         public void RemoveHandlers()
@@ -190,6 +186,26 @@ namespace FileMetadataAssociationManager
         public void RefreshProfiles()
         {
             OnPropertyChanged("Profiles");
+        }
+
+        public void RefreshRegistry()
+        {
+            int count = 0;
+            foreach (var ext in state.Extensions.Where(e => e.PropertyHandlerState == HandlerState.Ours ||  e.PropertyHandlerState == HandlerState.Chained))
+            {
+                if (ext.IsRefreshRequired())
+                {
+                    var p = ext.Profile;
+                    ext.RemoveHandlerFromExtension();
+                    ext.SetupHandlerForExtension(p, true);
+                    count++;
+                }
+            }
+
+            if (count == 0)
+                MessageBox.Show(LocalizedMessages.NoRegistryUpdatesNeeded, LocalizedMessages.RegistryUpdate);
+            else
+                MessageBox.Show(String.Format(LocalizedMessages.RegistryUpdatesMade, count), LocalizedMessages.RegistryUpdate);
         }
 
         private void DeterminePossibleActions()

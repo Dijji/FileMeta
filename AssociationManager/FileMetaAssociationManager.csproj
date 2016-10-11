@@ -96,6 +96,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="AssocMgrException.cs" />
     <Compile Include="HowTo.xaml.cs">
       <DependentUpon>HowTo.xaml</DependentUpon>
     </Compile>
@@ -111,11 +112,6 @@
     <Compile Include="ObservableCollectionWithReset.cs" />
     <Compile Include="Profile.cs" />
     <Compile Include="PropertyListEntry.cs" />
-    <Compile Include="Resources\LocalizedMessages.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>LocalizedMessages.resx</DependentUpon>
-    </Compile>
     <Compile Include="Code Pack\PropertyKey.cs" />
     <Compile Include="Code Pack\PropertySystemNativeMethods.cs" />
     <Compile Include="Code Pack\PropVariant.cs" />
@@ -158,11 +154,6 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
-    <EmbeddedResource Include="Resources\LocalizedMessages.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>LocalizedMessages.Designer.cs</LastGenOutput>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
     <None Include="Admin.manifest" />
     <None Include="app.config">
       <SubType>Designer</SubType>
@@ -197,6 +188,10 @@
     <Resource Include="Resources\refresh.ico" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\AssociationMessages\AssociationMessages.csproj">
+      <Project>{28675CF5-7653-4EB7-91AC-B08BB04DA246}</Project>
+      <Name>AssociationMessages</Name>
+    </ProjectReference>
     <ProjectReference Include="..\GongSolutions.Wpf.DragDrop\GongSolutions.Wpf.DragDrop %28NET35%29.csproj">
       <Project>{0C6674CC-6D49-414A-9B41-D4E175028FFB}</Project>
       <Name>GongSolutions.Wpf.DragDrop %28NET35%29</Name>

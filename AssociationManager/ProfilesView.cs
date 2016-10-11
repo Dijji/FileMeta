@@ -9,7 +9,7 @@ using System.Text;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
-using FileMetadataAssociationManager.Resources;
+using AssociationMessages;
 using GongSolutions.Wpf.DragDrop;
 
 namespace FileMetadataAssociationManager

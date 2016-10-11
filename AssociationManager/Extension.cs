@@ -9,7 +9,7 @@ using System.Windows;
 using System.Windows.Media;
 using Microsoft.Win32;
 using System.Security.Principal;
-using FileMetadataAssociationManager.Resources;
+using AssociationMessages;
 
 namespace FileMetadataAssociationManager
 {
@@ -54,6 +54,9 @@ namespace FileMetadataAssociationManager
         public State State { get; set; }
         public HandlerState PropertyHandlerState { get; private set; }
         public Profile Profile { get { return profile; } set { profile = value; } }
+
+#if CmdLine
+#else
         public FontWeight Weight 
         {
             get 
@@ -71,6 +74,7 @@ namespace FileMetadataAssociationManager
                 }
             } 
         }
+#endif
 
         public string PropertyHandlerDisplay 
         {
@@ -151,8 +155,10 @@ namespace FileMetadataAssociationManager
                 else
                     RecordPropertyHandler(HandlerState.Ours, null, null);
             }
-            else
+            else if (handlerGuid != null)
                 RecordPropertyHandler(HandlerState.Foreign, handlerGuid, GetHandlerTitle(handlerGuid));
+            else
+                RecordPropertyHandler(HandlerState.None, null, null);
         }
 
         public void IdentifyCurrentProfile()
@@ -180,18 +186,28 @@ namespace FileMetadataAssociationManager
         }
        
         // Setup the registry entries required when an extension is given our handler
-        public bool SetupHandlerForExtension(Profile selectedProfile)
+        public void SetupHandlerForExtension(Profile selectedProfile, bool createMergedProfile)
         {
-            if (PropertyHandlerState != HandlerState.None && PropertyHandlerState != HandlerState.Foreign)
-                return false;
-
             if (!IsElevated)
-                return false;
+                throw new AssocMgrException
+                {
+                    Description = LocalizedMessages.AdminPrivilegesNeeded,
+                    Exception = null,
+                    ErrorCode = WindowsErrorCodes.ERROR_ACCESS_DENIED
+                };
+
+            if (PropertyHandlerState != HandlerState.None && PropertyHandlerState != HandlerState.Foreign)
+                throw new AssocMgrException
+                {
+                    Description = String.Format(LocalizedMessages.ExtensionAlreadyHasHandler, Name),
+                    Exception = null,
+                    ErrorCode = WindowsErrorCodes.ERROR_INVALID_PARAMETER
+                };
 
             Profile profile;
 
             // Work out what profile to set up
-            if (PropertyHandlerState == HandlerState.None)
+            if (PropertyHandlerState == HandlerState.None || !createMergedProfile)
                 profile = selectedProfile;
             else
             {
@@ -215,9 +231,9 @@ namespace FileMetadataAssociationManager
                 // We used to place entries on this key, but no longer do, because such keys can be shared,
                 // and we only want to affect a specific extension
                 // We still have to hide any existing entries, because otherwise they would take priority, but fortunately they do not often occur
-                // If there are entries, we read them into the profile that we are setting up
+                // If there are entries, and we are merging, we read them into the new profile, in case this is the only place they occur
                 if (PropertyHandlerState == HandlerState.Foreign)
-                    GetAndHidePreExistingProgidRegistryEntries(target, profile);
+                    GetAndHidePreExistingProgidRegistryEntries(target, createMergedProfile ? profile : null);
             }
 
             // Now we only update the extension specific area
@@ -225,24 +241,51 @@ namespace FileMetadataAssociationManager
             {
                 if (PropertyHandlerState == HandlerState.Foreign)
                 {
-                    GetAndHidePreExistingProgidRegistryEntries(target, profile);
+                    if (createMergedProfile)
+                    {
+                        GetAndHidePreExistingProgidRegistryEntries(target, profile);
 
-                    // Merge the selected profile into any entries that came with the foreign handler
-                    profile.MergeFrom(selectedProfile);
+                        // Merge the selected profile into any entries that came with the foreign handler
+                        profile.MergeFrom(selectedProfile);
+                    }
+                    else
+                        GetAndHidePreExistingProgidRegistryEntries(target, null); 
                 }
 
-                if (!SetupProgidRegistryEntries(target, profile))
-                    return false;
+                SetupProgidRegistryEntries(target, profile);
             }
 
             if (PropertyHandlerState == HandlerState.Foreign)
             {
                 // Write the updated custom profile information back to the store
-                State.StoreSavedState();
+                State.StoreUpdatedProfile(profile);
             }              
 
-            // Now, add the property handler extension key
-            // Watch out for 32/64 bit issues here, as the 32-bit and 64-bit values of these are separate and isolated on 64-bit Windows,
+#if x64
+            // On 64-bit machines, set up the 32-bit property handler, so that 32-bit applications can also access our properties
+            using (RegistryKey handlers = RegistryExtensions.OpenBaseKey(RegistryHive.LocalMachine, RegistryExtensions.RegistryHiveType.X86).
+                                            OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\PropertySystem\PropertyHandlers", true))
+            {
+                using (RegistryKey handler = handlers.CreateSubKey(Name))
+                {
+                    if (PropertyHandlerState == HandlerState.None)
+                    {
+                        var temp = handler.GetValue(null); 
+                        // In the case where there is no 64-bit handler, but there is a 32-bit handler, leave it alone
+                        if (temp == null)
+                            handler.SetValue(null, OurPropertyHandlerGuid32);
+                    }
+                    else // Foreign
+                    {
+                        var temp = handler.GetValue(null);
+                        handler.SetValue(null, OurPropertyHandlerGuid32);
+                        handler.SetValue(ChainedValueName, temp);
+                    }
+                }
+            }
+#endif 
+            // Now, add the main handler extension key, which is 32- or 64-bit, depending on how we were built
+            // The 32-bit and 64-bit values of these are separate and isolated on 64-bit Windows,
             // the 32-bit value being under SOFTWARE\Wow6432Node.  Thus a 64-bit manager is needed to set up a 64-bit handler
             using (RegistryKey handlers = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\PropertySystem\PropertyHandlers", true))
             {
@@ -261,25 +304,29 @@ namespace FileMetadataAssociationManager
                     }
                 }
             }
+
             this.Profile = profile;
 
             State.HasChanged = true;
-
-            return true;
         }
 
         // Update the registry settings for an extension when the Full details or Preview details in a profile are changed
-        public bool UpdateProfileSettingsForExtension(Profile profile)
+        public void UpdateProfileSettingsForExtension(Profile profile)
         {
-            if (PropertyHandlerState != HandlerState.Ours && PropertyHandlerState != HandlerState.Chained)
-                return false;
-
             if (!IsElevated)
-                return false;
+                throw new AssocMgrException
+                {
+                    Description = LocalizedMessages.AdminPrivilegesNeeded,
+                    Exception = null,
+                    ErrorCode = WindowsErrorCodes.ERROR_ACCESS_DENIED
+                };
+
+            if (PropertyHandlerState != HandlerState.Ours && PropertyHandlerState != HandlerState.Chained)
+                return;
 
             using (RegistryKey target = GetSystemFileAssociationsProfileKey(true))
             {
-                return SetupProfileDetailEntries(target, profile);
+                SetupProfileDetailEntries(target, profile);
             }
         }
 
@@ -304,6 +351,7 @@ namespace FileMetadataAssociationManager
             return val != null;
         }
 
+        // If the caller does not need the existing values, it should pass null for the profile
         private void GetAndHidePreExistingProgidRegistryEntries(RegistryKey target, Profile profile)
         {
             if (target == null)
@@ -315,7 +363,8 @@ namespace FileMetadataAssociationManager
             {
                 target.SetValue(OldFullDetailsValueName, val);
                 target.DeleteValue(FullDetailsValueName);
-                profile.FullDetailsString = val as string;
+                if (profile != null)
+                    profile.FullDetailsString = val as string;
             }
 
             val = target.GetValue(InfoTipValueName);
@@ -323,7 +372,8 @@ namespace FileMetadataAssociationManager
             {
                 target.SetValue(OldInfoTipValueName, val);
                 target.DeleteValue(InfoTipValueName);
-                profile.InfoTipString = val as string;
+                if (profile != null)
+                    profile.InfoTipString = val as string;
             }
 
             val = target.GetValue(PreviewDetailsValueName);
@@ -331,15 +381,13 @@ namespace FileMetadataAssociationManager
             {
                 target.SetValue(OldPreviewDetailsValueName, val);
                 target.DeleteValue(PreviewDetailsValueName);
-                profile.PreviewDetailsString = val as string;
+                if (profile != null)
+                    profile.PreviewDetailsString = val as string;
             }
         }
 
-        private bool SetupProgidRegistryEntries(RegistryKey target, Profile profile)
+        private void SetupProgidRegistryEntries(RegistryKey target, Profile profile)
         {
-            if (target == null)
-                return false;
-
             SetupProfileDetailEntries(target, profile);
 
             // Set up the eontext handler, if registered
@@ -356,15 +404,10 @@ namespace FileMetadataAssociationManager
                     }
                 }
             }
-
-            return true;
         }
 
-        private bool SetupProfileDetailEntries(RegistryKey target, Profile profile)
+        private void SetupProfileDetailEntries(RegistryKey target, Profile profile)
         {
-            if (target == null)
-                return false;
-
             // Update the info tip and full and preview details keys
             target.SetValue(FullDetailsValueName, profile.FullDetailsString);
             target.SetValue(InfoTipValueName, profile.InfoTipString);
@@ -373,8 +416,6 @@ namespace FileMetadataAssociationManager
             // If this is a custom profile, update our private key that records its name
             if (!profile.IsReadOnly)
                 target.SetValue(FileMetaCustomProfileValueName, profile.Name);
-
-            return true;
         }
 
         private Profile GetCurrentProfileIfKnown()
@@ -406,8 +447,49 @@ namespace FileMetadataAssociationManager
             return null;
         }
 
+        // Check to see if the registry entries are down level i.e. 1.3 or 1.4, and so need refreshing
+        public bool IsRefreshRequired()
+        {
+            // Find the key for the extension in HKEY_CLASSES_ROOT
+            using (RegistryKey target = GetHKCRProfileKey(true))
+            {
+                // Refresh is required if old school FullDetails value is present 
+                if (target != null && target.GetValue(FullDetailsValueName) != null)
+                    return true;
+            }
+#if x64
+            // On 64-bit machines, check that we have a 32-bit property handler, as we now set up both 
+            using (RegistryKey handlers = RegistryExtensions.OpenBaseKey(RegistryHive.LocalMachine, RegistryExtensions.RegistryHiveType.X86).
+                                            OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\PropertySystem\PropertyHandlers", true))
+            {
+                using (RegistryKey handler = handlers.OpenSubKey(Name, false))
+                {
+                    // It is important to get the criteria right here, as we don't want to
+                    // return a positive unless removing the handler and setting it up again
+                    // will resolve the situation
+
+                    // If there is no handler, refresh is required
+                    if (handler == null || handler.GetValue(null) == null)
+                        return true;
+                    // Also refresh if we are chained, and no original property handler is recorded (even if null)
+                    else if (PropertyHandlerState == HandlerState.Chained && !handler.GetValueNames().Contains(ChainedValueName))
+                        return true;
+                }
+            }
+#endif 
+            return false;
+        }
+
         public void RemoveHandlerFromExtension()
         {
+            if (!IsElevated)
+                throw new AssocMgrException
+                {
+                    Description = LocalizedMessages.AdminPrivilegesNeeded,
+                    Exception = null,
+                    ErrorCode = WindowsErrorCodes.ERROR_ACCESS_DENIED
+                };
+
             if (PropertyHandlerState != HandlerState.Ours && PropertyHandlerState != HandlerState.Chained)
                 return;
 
@@ -429,8 +511,47 @@ namespace FileMetadataAssociationManager
                     RemoveProgidRegistryEntries(target);
             }
 
-            // Now, remove the handler extension key
-            // Watch out for 32/64 bit issues here, as the 32-bit and 64-bit values of these are separate and isolated on 64-bit Windows,
+#if x64
+            // On 64-bit machines, remove the 32-bit property handler, as we set up both 
+            using (RegistryKey handlers = RegistryExtensions.OpenBaseKey(RegistryHive.LocalMachine, RegistryExtensions.RegistryHiveType.X86).
+                                            OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\PropertySystem\PropertyHandlers", true))
+            {
+                if (PropertyHandlerState == HandlerState.Ours)
+                {
+                    bool delete = false;
+                    using (RegistryKey handler = handlers.OpenSubKey(Name, true))
+                    {
+                        if (handler != null)
+                        {
+                            // Only delete the sub key if it points to our handler
+                            var temp = handler.GetValue(null) as string;
+                            delete = (temp != null && temp == OurPropertyHandlerGuid32);
+                        }
+                    }
+                    // Delete needs to happen after we have released the registry key
+                    if (delete)
+                        handlers.DeleteSubKey(Name);
+                }
+                else  // Chained
+                {
+                    using (RegistryKey handler = handlers.OpenSubKey(Name, true))
+                    {
+                        if (handler != null)
+                        {
+                            // Allow for the case where the chained value exists but is empty
+                            if (handler.GetValueNames().Contains(ChainedValueName))
+                            {
+                                var temp = handler.GetValue(ChainedValueName);
+                                handler.SetValue(null, temp);
+                                handler.DeleteValue(ChainedValueName);
+                            }
+                        }
+                    }
+                }
+            }
+#endif 
+            // Now, remove the main handler extension key, which is 32- or 64-bit, depending on how we were built
+            // The 32-bit and 64-bit values of these are separate and isolated on 64-bit Windows,
             // the 32-bit value being under SOFTWARE\Wow6432Node.  Thus a 64-bit manager is needed to set up a 64-bit handler
             using (RegistryKey handlers = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\PropertySystem\PropertyHandlers", true))
             {
@@ -451,16 +572,11 @@ namespace FileMetadataAssociationManager
                     }
                 }
             }
-
             State.HasChanged = true;
         }
 
         private void RemoveProgidRegistryEntries(RegistryKey target)
         {
-            // tolerate missing entries
-            if (target == null)
-                return;
-
             target.DeleteValue(FullDetailsValueName, false);
             target.DeleteValue(InfoTipValueName, false);
             target.DeleteValue(PreviewDetailsValueName, false);
@@ -534,15 +650,20 @@ namespace FileMetadataAssociationManager
         {
             // Find the key for the extension in HKEY_CLASSES_ROOT
             string progid;
-            using (RegistryKey ext = Registry.ClassesRoot.OpenSubKey(Name, false))
-            {
-                if (ext == null)
-                    return null;
 
-                progid = (string)ext.GetValue(null);
+            using (RegistryKey extKey = Registry.ClassesRoot.OpenSubKey(Name, false))
+            {
+                if (extKey == null)
+                {
+                    if (bWritable)
+                        progid = null;
+                    else
+                        return null;
+                }
+                else
+                    progid = (string)extKey.GetValue(null);
             }
 
-            RegistryKey target;
             string targetName;
 
             if (progid != null && progid.Length > 0)
@@ -552,15 +673,20 @@ namespace FileMetadataAssociationManager
 
             try
             {
-                target = Registry.ClassesRoot.OpenSubKey(progid, bWritable);
+                if (bWritable)
+                    return Registry.ClassesRoot.CreateSubKey(targetName);
+                else
+                    return Registry.ClassesRoot.OpenSubKey(targetName, false);
             }
             catch (System.Security.SecurityException e)
             {
-                MessageBox.Show(String.Format(LocalizedMessages.NoRegistryPermission, targetName), LocalizedMessages.ProfileError);
-                target = null;
+                throw new AssocMgrException
+                {
+                    Description = String.Format(LocalizedMessages.NoRegistryPermission, targetName),
+                    Exception = e,
+                    ErrorCode = WindowsErrorCodes.ERROR_ACCESS_DENIED
+                };
             }
-
-            return target;
         }
 
         private RegistryKey GetSystemFileAssociationsProfileKey(bool bWritable)
