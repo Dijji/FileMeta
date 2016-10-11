@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SavedState xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <CustomProfiles>
+    <Profile>
+      <Name>test</Name>
+      <FullDetailsString>prop:System.PropGroup.Description;System.Title;System.Subject;System.Keywords;System.Category;System.Comment;System.Rating;System.PropGroup.Origin;System.Author;System.Document.RevisionNumber</FullDetailsString>
+      <PreviewDetailsString>prop:System.Title;System.Subject;System.Keywords;System.Category;System.Comment;System.Rating;System.Author;System.Document.RevisionNumber</PreviewDetailsString>
+      <InfoTipString>prop:System.Comment;System.Rating</InfoTipString>
+    </Profile>
+    <Profile>
+      <Name>tiny</Name>
+      <FullDetailsString>prop:System.PropGroup.Description;System.Title;System.Comment;System.PropGroup.Origin;System.Author</FullDetailsString>
+      <PreviewDetailsString>prop:System.Comment;System.Author</PreviewDetailsString>
+      <InfoTipString>prop:System.Comment</InfoTipString>
+    </Profile>
+    <Profile>
+      <Name>.bmp</Name>
+      <FullDetailsString>prop:System.PropGroup.Image;System.Image.Dimensions;System.Image.HorizontalSize;System.Image.VerticalSize;System.Image.BitDepth;System.PropGroup.FileSystem;System.ItemNameDisplay;System.ItemType;System.ItemFolderPathDisplay;System.DateCreated;System.DateModified;System.Size;System.FileAttributes;System.OfflineAvailability;System.OfflineStatus;System.SharedWith;System.FileOwner;System.ComputerName;System.PropGroup.Description;System.Title;System.Subject;System.Keywords;System.Category;System.Comment;System.Rating;System.PropGroup.Origin;System.Author;System.Document.RevisionNumber</FullDetailsString>
+      <PreviewDetailsString>prop:*System.DateModified;*System.Image.Dimensions;*System.Size;*System.OfflineAvailability;*System.OfflineStatus;*System.DateCreated;*System.SharedWith;System.Title;System.Subject;System.Keywords;System.Category;System.Comment;System.Rating;System.Author;System.Document.RevisionNumber</PreviewDetailsString>
+      <InfoTipString>prop:System.ItemType;*System.DateModified;*System.Image.Dimensions;*System.Size;System.ItemTypeText;System.Comment</InfoTipString>
+    </Profile>
+    <Profile>
+      <Name>.jpg</Name>
+      <FullDetailsString>prop:System.PropGroup.Description;System.Title;System.Subject;System.Rating;System.Keywords;*System.Photo.PeopleNames;System.Comment;System.Category;System.PropGroup.Origin;System.Author;System.Photo.DateTaken;System.ApplicationName;System.DateAcquired;System.Copyright;System.Document.LastAuthor;System.Document.RevisionNumber;System.Document.Version;System.Company;System.Document.Manager;System.Document.DateCreated;System.Document.DateSaved;System.Document.DatePrinted;System.Document.TotalEditingTime;System.PropGroup.Image;System.Image.ImageID;System.Image.Dimensions;System.Image.HorizontalSize;System.Image.VerticalSize;System.Image.HorizontalResolution;System.Image.VerticalResolution;System.Image.BitDepth;System.Image.Compression;System.Image.ResolutionUnit;System.Image.ColorSpace;System.Image.CompressedBitsPerPixel;System.PropGroup.Camera;System.Photo.CameraManufacturer;System.Photo.CameraModel;System.Photo.FNumber;System.Photo.ExposureTime;System.Photo.ISOSpeed;System.Photo.ExposureBias;System.Photo.FocalLength;System.Photo.MaxAperture;System.Photo.MeteringMode;System.Photo.SubjectDistance;System.Photo.Flash;System.Photo.FlashEnergy;System.Photo.FocalLengthInFilm;System.PropGroup.PhotoAdvanced;System.Photo.LensManufacturer;System.Photo.LensModel;System.Photo.FlashManufacturer;System.Photo.FlashModel;System.Photo.CameraSerialNumber;System.Photo.Contrast;System.Photo.Brightness;System.Photo.LightSource;System.Photo.ExposureProgram;System.Photo.Saturation;System.Photo.Sharpness;System.Photo.WhiteBalance;System.Photo.PhotometricInterpretation;System.Photo.DigitalZoom;System.Photo.EXIFVersion;System.PropGroup.GPS;*System.GPS.Latitude;*System.GPS.Longitude;*System.GPS.Altitude;System.PropGroup.FileSystem;System.ItemNameDisplay;System.ItemType;System.ItemFolderPathDisplay;System.DateCreated;System.DateModified;System.Size;System.FileAttributes;System.OfflineAvailability;System.OfflineStatus;System.SharedWith;System.FileOwner;System.ComputerName;System.PropGroup.Content;System.ContentStatus;System.ContentType;System.Document.PageCount;System.Document.WordCount;System.Document.CharacterCount;System.Document.LineCount;System.Document.ParagraphCount;System.Document.Template;System.Document.Scale;System.Document.LinksDirty;System.Language</FullDetailsString>
+      <PreviewDetailsString>prop:System.Photo.DateTaken;System.Keywords;*System.Photo.PeopleNames;System.Rating;*System.Image.Dimensions;*System.Size;System.Title;System.Author;System.Comment;*System.OfflineAvailability;*System.OfflineStatus;System.Photo.CameraManufacturer;System.Photo.CameraModel;System.Subject;*System.Photo.FNumber;*System.Photo.ExposureTime;*System.Photo.ISOSpeed;*System.Photo.ExposureBias;*System.Photo.FocalLength;*System.Photo.MaxAperture;*System.Photo.MeteringMode;*System.Photo.SubjectDistance;*System.Photo.Flash;*System.Photo.FlashEnergy;*System.Photo.FocalLengthInFilm;*System.DateCreated;*System.DateModified;*System.SharedWith;System.Category;*System.Document.PageCount;System.ContentStatus;System.ContentType</PreviewDetailsString>
+      <InfoTipString>prop:System.ItemType;System.Photo.DateTaken;System.Keywords;*System.Photo.PeopleNames;System.Rating;*System.Image.Dimensions;*System.Size;System.Title;System.ItemTypeText;System.DateModified;System.Document.PageCount</InfoTipString>
+    </Profile>
+  </CustomProfiles>
+</SavedState>
