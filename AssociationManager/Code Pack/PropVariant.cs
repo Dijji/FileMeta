@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using FileMetadataAssociationManager.Resources;
+using AssociationMessages;
 
 namespace FileMetadataAssociationManager
 {
