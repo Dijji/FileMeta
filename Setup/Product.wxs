@@ -6,7 +6,7 @@ Also thanks to Alek Davis for the 32/64-bit strategy: http://alekdavis.blogspot.
 -->
 
 <?define ProductName = "File Metadata" ?>
-<?define ProductVersion = "1.4" ?>
+<?define ProductVersion = "1.5" ?>
 
 <?if $(var.Platform) = x64 ?>
 <?define ProductDisplayName = "$(var.ProductName) 64-bit" ?>
@@ -16,8 +16,10 @@ Also thanks to Alek Davis for the 32/64-bit strategy: http://alekdavis.blogspot.
 <?define PlatformProgramFilesFolder = "ProgramFiles64Folder" ?>
 <?define PlatformSystemFilesFolder = "SystemFiles64Folder" ?>
 <?define PlatformPropertyCLSID = "{D06391EE-2FEB-419B-9667-AD160D0849F3}" ?>
+<?define PlatformPropertyCLSID32 = "{60211757-EF87-465E-B6C1-B37CF98295F9}" ?>
 <?define PlatformContextMenuCLSID = "{28D14D00-2D80-4956-9657-9D50C8BB47A5}" ?>
 <?define CRuntime = "Microsoft_VC100_CRT_x64.msm" ?>
+<?define CRuntime32 = "Microsoft_VC100_CRT_x86.msm" ?>
 <?else ?>
 <?define ProductDisplayName = "$(var.ProductName)" ?>
 <?define ProductId = "513782B2-9AA2-4BE3-93C2-13664F23B965" ?>
@@ -32,7 +34,7 @@ Also thanks to Alek Davis for the 32/64-bit strategy: http://alekdavis.blogspot.
 
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
 	<Product Id="$(var.ProductId)" Name="$(var.ProductDisplayName) (v$(var.ProductVersion))"
-           Language="1033" Version="1.4.6089.0" Manufacturer="Dijji" UpgradeCode="$(var.ProductUpgradeCode)">
+           Language="1033" Version="1.5.6126.0" Manufacturer="Dijji" UpgradeCode="$(var.ProductUpgradeCode)">
 		<Package InstallerVersion="400" Compressed="yes" InstallScope="perMachine" />
     <Condition Message="[ProductName] is for Windows Vista, Windows Server 2008, or higher.">
       <![CDATA[Installed OR (VersionNT >= 600)]]>
@@ -52,8 +54,12 @@ Also thanks to Alek Davis for the 32/64-bit strategy: http://alekdavis.blogspot.
     <WixVariable Id="WixUILicenseRtf" Value="Ms-PL.rtf" />
 
     <Feature Id="PF_PropertyHandler" Title="Property Handler" Level="1" Absent="disallow">
-      <ComponentRef Id="COMP_PropertyHandler" />
+      <ComponentGroupRef Id="COMP_PropertyHandler" />
       <MergeRef Id="CRT" />
+      <?if $(var.Platform) = x64 ?>
+      <!-- 64-bit platforms get 32-bit property handler as well -->
+      <MergeRef Id="CRT32" />
+      <?endif ?>
       <Feature Id="PF_FileAssociationManager" Title="File Association Manager" Level="1">
         <ComponentGroupRef Id="COMP_AssociationManager" />
       </Feature>
@@ -61,7 +67,7 @@ Also thanks to Alek Davis for the 32/64-bit strategy: http://alekdavis.blogspot.
         <ComponentRef Id="COMP_ContextMenuHandler" />
       </Feature>
       <Feature Id="PF_CommandLine" Title="File Metadata Command Line Utility" Level="1">
-        <ComponentRef Id="COMP_CommandLine" />
+        <ComponentGroupRef Id="COMP_CommandLine" />
       </Feature>
     </Feature>
 
@@ -81,18 +87,40 @@ Also thanks to Alek Davis for the 32/64-bit strategy: http://alekdavis.blogspot.
       </Directory>
       <!--Tweak the path to the C++ runtime as required in your dev environment. Deploys only release version of runtime, of course-->
       <Merge Id="CRT" Language="0" SourceFile="C:\Program Files (x86)\Common Files\Merge Modules\$(var.CRuntime)" DiskId="1" />
+      <?if $(var.Platform) = x64 ?>
+      <!-- 64-bit platforms get 32-bit property handler as well -->
+      <Directory Id="ProgramFilesFolder">
+        <Directory Id="INSTALLFOLDER32" Name="$(var.ProductName)">
+        </Directory>
+      </Directory>
+      <Merge Id="CRT32" Language="0" SourceFile="C:\Program Files (x86)\Common Files\Merge Modules\$(var.CRuntime32)" DiskId="1" />
+      <?endif ?>
     </Directory>
 
-    <!--I tried Directory="$(var.PlatformSystemFilesFolder)" but the installer typically decided it was 'full' and bounced it to a random spot, so this is better-->
-    <Component Id="COMP_PropertyHandler" Win64="$(var.Win64)" Directory="INSTALLFOLDER" Guid="57E7A534-8A34-4271-B5D0-B1387A4906A0">
-      <File Id="FILE_PropertyHandler" KeyPath="yes" Source="$(var.FileMetaPropertyHandler.TargetPath)">
-        <Class Id="$(var.PlatformPropertyCLSID)" Context="InprocServer32" Description="File Meta Property Handler" ThreadingModel="both" />
-      </File>
-      <RegistryValue Root="HKCR" Key="CLSID\$(var.PlatformPropertyCLSID)" Name="DisableProcessIsolation" Value="1" Type="integer" Action="write" />
-      <RegistryValue Root="HKCR" Key="CLSID\$(var.PlatformPropertyCLSID)" Name="ManualSafeSave" Value="1" Type="integer" Action="write" />
-      <RegistryValue Root="HKCR" Key="CLSID\$(var.PlatformPropertyCLSID)" Name="EnableShareDenyWrite" Value="1" Type="integer" Action="write" />
-      <RegistryValue Root="HKCR" Key="CLSID\$(var.PlatformPropertyCLSID)" Name="EnableShareDenyNone" Value="1" Type="integer" Action="write" />
-    </Component>
+    <ComponentGroup Id="COMP_PropertyHandler">
+      <Component Id="COMP_PropertyHandler" Win64="$(var.Win64)" Directory="INSTALLFOLDER" Guid="57E7A534-8A34-4271-B5D0-B1387A4906A0">
+        <File Id="FILE_PropertyHandler" KeyPath="yes" Source="$(var.FileMetaPropertyHandler.TargetPath)">
+          <Class Id="$(var.PlatformPropertyCLSID)" Context="InprocServer32" Description="File Meta Property Handler" ThreadingModel="both" />
+        </File>
+        <RegistryValue Root="HKCR" Key="CLSID\$(var.PlatformPropertyCLSID)" Name="DisableProcessIsolation" Value="1" Type="integer" Action="write" />
+        <RegistryValue Root="HKCR" Key="CLSID\$(var.PlatformPropertyCLSID)" Name="ManualSafeSave" Value="1" Type="integer" Action="write" />
+        <RegistryValue Root="HKCR" Key="CLSID\$(var.PlatformPropertyCLSID)" Name="EnableShareDenyWrite" Value="1" Type="integer" Action="write" />
+        <RegistryValue Root="HKCR" Key="CLSID\$(var.PlatformPropertyCLSID)" Name="EnableShareDenyNone" Value="1" Type="integer" Action="write" />
+      </Component>
+    
+      <?if $(var.Platform) = x64 ?>
+      <!-- 64-bit platforms get 32-bit property handler as well -->
+      <Component Id="COMP_PropertyHandler32" Win64="no" Directory="INSTALLFOLDER32" Guid="B9AC82C6-6D94-46E7-A846-0A646EE483A9">
+        <File Id="FILE_PropertyHandler32" KeyPath="yes" Source="$(var.FileMetaPropertyHandler.TargetDir)\..\..\$(var.FileMetaPropertyHandler.Configuration)\$(var.FileMetaPropertyHandler.TargetFileName)">
+          <Class Id="$(var.PlatformPropertyCLSID32)" Context="InprocServer32" Description="File Meta Property Handler" ThreadingModel="both" />
+        </File>
+        <RegistryValue Root="HKCR" Key="CLSID\$(var.PlatformPropertyCLSID32)" Name="DisableProcessIsolation" Value="1" Type="integer" Action="write" />
+        <RegistryValue Root="HKCR" Key="CLSID\$(var.PlatformPropertyCLSID32)" Name="ManualSafeSave" Value="1" Type="integer" Action="write" />
+        <RegistryValue Root="HKCR" Key="CLSID\$(var.PlatformPropertyCLSID32)" Name="EnableShareDenyWrite" Value="1" Type="integer" Action="write" />
+        <RegistryValue Root="HKCR" Key="CLSID\$(var.PlatformPropertyCLSID32)" Name="EnableShareDenyNone" Value="1" Type="integer" Action="write" />
+      </Component>
+      <?endif ?>
+    </ComponentGroup>
     
     <Component Id="COMP_ContextMenuHandler" Win64="$(var.Win64)" Directory="INSTALLFOLDER" Guid="6D5DD627-726C-4892-9667-30A9C4F544FF">
       <File Id="FILE_ContextMenuHandler" KeyPath="yes" Source="$(var.FileMetaContextMenuHandler.TargetPath)">
@@ -100,10 +128,19 @@ Also thanks to Alek Davis for the 32/64-bit strategy: http://alekdavis.blogspot.
       </File>
     </Component>
 
-    <Component Id="COMP_CommandLine" Win64="$(var.Win64)" Directory="INSTALLFOLDER" Guid="5F1DE994-4C5B-47D1-99B4-DDDE4E07FCED">
-      <File Id="FILE_CommandLine" KeyPath="yes" Source="$(var.CommandLine.TargetPath)"/>
-    </Component>
+    <ComponentGroup Id="COMP_CommandLine">
+      <Component Id="COMP_FileMetaCommandLine" Win64="$(var.Win64)" Directory="INSTALLFOLDER" Guid="5F1DE994-4C5B-47D1-99B4-DDDE4E07FCED">
+        <File Id="FILE_CommandLine" KeyPath="yes" Source="$(var.CommandLine.TargetPath)"/>
+      </Component>
 
+      <Component Id="COMP_AssociationCommandLine" Win64="$(var.Win64)" Directory="INSTALLFOLDER" Guid="8F517AA0-43E9-437E-AE3A-118BCB49A4F9">
+        <File Id="FILE_AssociationCommandLine" KeyPath="yes" Source="$(var.CommandLineAssociationManager.TargetPath)"/>
+        <File Source="$(var.CommandLineAssociationManager.TargetPath).config" />
+      </Component>
+
+      <ComponentRef Id="COMP_Messages" />
+    </ComponentGroup>
+    
     <ComponentGroup Id="COMP_AssociationManager">
       <Component Id="COMP_FileAssociationManager"  Directory="INSTALLFOLDER" Guid="8F8E44D9-D54E-44C7-9D89-B4222A8EFCC0">
         <File KeyPath="yes" Source="$(var.FileMetaAssociationManager.TargetPath)" />
@@ -112,6 +149,9 @@ Also thanks to Alek Davis for the 32/64-bit strategy: http://alekdavis.blogspot.
       <Component KeyPath="yes" Id="COMP_DragDrop"  Directory="INSTALLFOLDER" Guid="A0BADB13-7C51-44B8-9F50-F15F89852D7D">
         <File Source="$(var.FileMetaAssociationManager.TargetDir)GongSolutions.Wpf.DragDrop.dll" />
       </Component>
+      <Component KeyPath="yes" Id="COMP_Messages"  Directory="INSTALLFOLDER" Guid="9D18140B-AFB8-4E8A-A801-27D64A20D0A6">
+        <File Source="$(var.FileMetaAssociationManager.TargetDir)AssociationMessages.dll" />
+      </Component> 
       <!-- for future locaization 
       <Component Id="COMP_enUSResources"  Directory="enUSResources" Guid="DFF3A865-AEC7-4042-9E19-03214C9B3753">
         <File KeyPath="yes" Source="$(var.FileMetaAssociationManager.TargetDir)en-US\FileMetaAssociationManager.resources.dll" />
