@@ -2,7 +2,7 @@
 //Copyright (c) Microsoft Corporation.  All rights reserved.
 using System;
 using System.Runtime.InteropServices;
-using FileMetadataAssociationManager.Resources;
+using AssociationMessages;
 
 namespace FileMetadataAssociationManager
 {
