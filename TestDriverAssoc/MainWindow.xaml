@@ -1,0 +1,36 @@
+﻿<!-- Copyright (c) 2016, Dijji, and released under Ms-PL.  This, with other relevant licenses, can be found in the root of this distribution.
+-->
+<Window x:Class="TestDriverAssoc.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:tda="clr-namespace:TestDriverAssoc"
+        Title="Test Association Management" Height="400" Width="600">
+    <Window.Resources>
+        <Style x:Key="autoScrollLBStyle" TargetType="tda:AutoScrollListBox">
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="true">
+                    <Setter Property="AutoScroll" Value="false"/>
+                </Trigger>
+                <Trigger Property="IsMouseOver" Value="false">
+                    <Setter Property="AutoScroll" Value="true"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="30" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="30" />
+        </Grid.RowDefinitions>
+        <StackPanel Grid.Row="0"  Height="30" HorizontalAlignment="Left" Name="stackPanel1" VerticalAlignment="Top" Orientation="Horizontal">
+            <Button Content="Scan" Margin="10,0,0,0" Height="23" Width="60" Name="scan" FontSize="12" Click="scan_Click" Visibility="Collapsed" />
+            <Button Content="Test Command Line" Margin="10,0,0,0" Height="23" Width="120" Name="testCommandLine" FontSize="12" Click="testCommandLine_Click" />
+            <Button Content="Test GUI" Margin="10,0,0,0" Height="23" Width="60" Name="testGUI" FontSize="12" Click="testGUI_Click" />
+            <Button Content="Save Results" Margin="100,0,0,0" Height="23" Width="100" Name="save" FontSize="12" Click="save_Click" />
+            <Button Content="Clear Results" Margin="10,0,0,0" Height="23" Width="100" Name="clear" FontSize="12" Click="clear_Click" />
+        </StackPanel>
+        <tda:AutoScrollListBox Grid.Row="1" x:Name="lbReports" Style="{StaticResource autoScrollLBStyle}" ItemsSource="{Binding Path=Reports}" FontSize="12"/>
+        <TextBlock Grid.Row="2" Height="23" HorizontalAlignment="Left" Margin="12,7,0,0" Name="textBlock1" Text="{Binding Path=Status}" VerticalAlignment="Top" FontSize="12" />
+    </Grid>
+</Window>

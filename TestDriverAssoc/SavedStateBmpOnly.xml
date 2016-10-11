@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SavedState xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <CustomProfiles>
+    <Profile>
+      <Name>.bmp</Name>
+      <FullDetailsString>prop:System.PropGroup.Image;System.Image.Dimensions;System.Image.HorizontalSize;System.Image.VerticalSize;System.Image.BitDepth;System.PropGroup.FileSystem;System.ItemNameDisplay;System.ItemType;System.ItemFolderPathDisplay;System.DateCreated;System.DateModified;System.Size;System.FileAttributes;System.OfflineAvailability;System.OfflineStatus;System.SharedWith;System.FileOwner;System.ComputerName;System.PropGroup.Description;System.Title;System.Subject;System.Keywords;System.Category;System.Comment;System.Rating;System.PropGroup.Origin;System.Author;System.Document.RevisionNumber</FullDetailsString>
+      <PreviewDetailsString>prop:*System.DateModified;*System.Image.Dimensions;*System.Size;*System.OfflineAvailability;*System.OfflineStatus;*System.DateCreated;*System.SharedWith;System.Title;System.Subject;System.Keywords;System.Category;System.Comment;System.Rating;System.Author;System.Document.RevisionNumber</PreviewDetailsString>
+      <InfoTipString>prop:System.ItemType;*System.DateModified;*System.Image.Dimensions;*System.Size;System.ItemTypeText;System.Comment</InfoTipString>
+    </Profile>
+  </CustomProfiles>
+</SavedState>
