@@ -1,0 +1,11 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/AssociationManager/obj
+/.vs
+/AssociationMessages/obj
+/CommandLineAssociationManager/obj
+/GongSolutions.Wpf.DragDrop/obj
+/TestDriver/obj
+/TestDriverAssoc/obj
