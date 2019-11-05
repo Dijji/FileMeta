@@ -19,6 +19,10 @@ namespace TestDriverAssoc
             ERROR_XML_PARSE_ERROR = 1465,
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="obj"></param>
         public static void Run(Object obj)
         {
             State state = (State)obj;
@@ -50,6 +54,7 @@ namespace TestDriverAssoc
                 RoundTrip(state, "V15BuiltIn", ref Const.V15BuiltIn, ref pass);
                 RoundTrip(state, "V15Custom", ref Const.V15CustomTest, ref pass);
                 RoundTrip(state, "V15CustomOther32", ref Const.V15CustomTestOther32, ref pass);
+                RoundTrip(state, "V15CustomOther64", ref Const.V15CustomTestOther64, ref pass);
                 RoundTrip(state, "V15Extended", ref Const.V15ExtendedBmp, ref pass);
 #if x64
                 RoundTrip(state, "V15InitialOther32", ref Const.V15InitialOther32, ref pass);
@@ -74,6 +79,7 @@ namespace TestDriverAssoc
                 Remove(state, "Version 1.5 with custom profile", "V15Custom", ref Const.V15CustomTest, ref pass);
 #if x64
                 Remove(state, "Version 1.5 with custom profile and existing 32 bit handler", "V15CustomOther32", ref Const.V15CustomTestOther32, ref pass, Const.V15InitialOther32);
+                Remove(state, "Version 1.5 with custom profile and existing 64 bit handler", "V15CustomOther64", ref Const.V15CustomTestOther64, ref pass, Const.V15InitialOther64);
 #endif
                 Remove(state, "Version 1.5 with extended handler", "V15Extended", ref Const.V15ExtendedBmp, ref pass, Const.V15UnExtended);
                 Remove(state, "Version 1.5 with extended handler and CLSID settings", "V15ExtendedClsid", ref Const.V15ExtendedBmpClsid, ref pass, Const.V15UnExtendedClsid);
@@ -93,6 +99,7 @@ namespace TestDriverAssoc
                 Add(state, "Extension does not exist, custom profile 'test'", "V15CustomTest", "-p=test -d=SavedState.xml", ref Const.V15CustomTest, ref pass);
 #if x64
                 Add(state, "Extension does not exist, 32 bit handler does, custom profile 'test'", "V15CustomTestOther32", "-p=test -d=SavedState.xml", ref Const.V15CustomTestOther32, ref pass, Const.V15InitialOther32);
+                Add(state, "Extension does not exist, 64 bit handler does, custom profile 'test'", "V15CustomTestOther64", "-p=test -d=SavedState.xml", ref Const.V15CustomTestOther64, ref pass, Const.V15InitialOther64);
 #endif
                 Common.ClearProfile();
                 Add(state, "Extend existing .bmp property handler", "V15ExtendedBmp", "-p=.bmp -d=SavedState.xml", ref Const.V15ExtendedBmp, ref pass, Const.V15UnExtended);

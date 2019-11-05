@@ -101,6 +101,11 @@ namespace FileMetadataAssociationManager
             {
                 System.Windows.MessageBox.Show(ae.DisplayString, LocalizedMessages.ErrorHeader);
             }
+            catch (Exception ex)
+            {
+                Clipboard.SetText(ex.ToString());
+                System.Windows.MessageBox.Show(ex.ToString(), LocalizedMessages.ErrorHeader);
+            }
         }
 
         private void removeHandler_Click(object sender, RoutedEventArgs e)
@@ -112,6 +117,11 @@ namespace FileMetadataAssociationManager
             catch (AssocMgrException ae)
             {
                 System.Windows.MessageBox.Show(ae.DisplayString, LocalizedMessages.ErrorHeader);
+            }
+            catch (Exception ex)
+            {
+                Clipboard.SetText(ex.ToString());
+                System.Windows.MessageBox.Show(ex.ToString(), LocalizedMessages.ErrorHeader);
             }
         }
 

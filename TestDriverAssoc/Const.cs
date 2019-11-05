@@ -29,6 +29,7 @@ namespace TestDriverAssoc
 
 #if x64
         public static string OurPropertyHandlerGuid { get { return OurPropertyHandlerGuid64; } }
+        public static string OurPropertyHandlerGuid32bit { get { return OurPropertyHandlerGuid32; } }
         public static string OurContextHandlerGuid { get { return OurContextHandlerGuid64; } }
 #elif x86
         public static string OurPropertyHandlerGuid { get { return OurPropertyHandlerGuid32; } }
@@ -142,8 +143,13 @@ namespace TestDriverAssoc
         {
              PropertyHandler32 = OtherPropertyHandlerGuid,
         };
+        // This is an initial state where there is a 64-bit property handler installed, but there is no 32-bit property handler
+        public static RegState V15InitialOther64 = new RegState
+        {
+            PropertyHandler = OtherPropertyHandlerGuid,
+        };
 #endif
-        // This is what we should find after we have added our handler in the above case
+        // This is what we should find after we have added our handler in the above 32 and 64-bit cases
         public static RegState V15CustomTestOther32 = new RegState
         {
             SystemFullDetails = FullDetailsCustomProfileTest,
@@ -154,6 +160,19 @@ namespace TestDriverAssoc
             PropertyHandler = OurPropertyHandlerGuid,
 #if x64
             PropertyHandler32 = OtherPropertyHandlerGuid,
+#endif
+        };
+        public static RegState V15CustomTestOther64 = new RegState
+        {
+            SystemFullDetails = FullDetailsCustomProfileTest,
+            SystemPreviewDetails = PreviewDetailsCustomProfileTest,
+            SystemInfoTip = InfoTipCustomProfileTest,
+            SystemCustomProfile = "test",
+            SystemContextMenuHandler = OurContextHandlerGuid,
+            PropertyHandler = OurPropertyHandlerGuid,
+            ChainedPropertyHandler = OtherPropertyHandlerGuid,
+#if x64
+            PropertyHandler32 = OurPropertyHandlerGuid32bit,
 #endif
         };
         public static RegState V15ExtendedBmp = new RegState

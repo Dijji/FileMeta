@@ -279,7 +279,8 @@ namespace FileMetadataAssociationManager
                     {
                         var temp = handler.GetValue(null);
                         handler.SetValue(null, OurPropertyHandlerGuid32);
-                        handler.SetValue(ChainedValueName, temp);
+                        if (temp != null)
+                            handler.SetValue(ChainedValueName, temp);
                     }
                 }
             }
@@ -516,38 +517,28 @@ namespace FileMetadataAssociationManager
             using (RegistryKey handlers = RegistryExtensions.OpenBaseKey(RegistryHive.LocalMachine, RegistryExtensions.RegistryHiveType.X86).
                                             OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\PropertySystem\PropertyHandlers", true))
             {
-                if (PropertyHandlerState == HandlerState.Ours)
+                bool delete = false;
+                using (RegistryKey handler = handlers.OpenSubKey(Name, true))
                 {
-                    bool delete = false;
-                    using (RegistryKey handler = handlers.OpenSubKey(Name, true))
+                    if (handler != null)
                     {
-                        if (handler != null)
+                        if (handler.GetValueNames().Contains(ChainedValueName))
+                        {
+                            var temp = handler.GetValue(ChainedValueName);
+                            handler.SetValue(null, temp);
+                            handler.DeleteValue(ChainedValueName);
+                        }
+                        else
                         {
                             // Only delete the sub key if it points to our handler
                             var temp = handler.GetValue(null) as string;
                             delete = (temp != null && temp == OurPropertyHandlerGuid32);
                         }
                     }
-                    // Delete needs to happen after we have released the registry key
-                    if (delete)
-                        handlers.DeleteSubKey(Name);
                 }
-                else  // Chained
-                {
-                    using (RegistryKey handler = handlers.OpenSubKey(Name, true))
-                    {
-                        if (handler != null)
-                        {
-                            // Allow for the case where the chained value exists but is empty
-                            if (handler.GetValueNames().Contains(ChainedValueName))
-                            {
-                                var temp = handler.GetValue(ChainedValueName);
-                                handler.SetValue(null, temp);
-                                handler.DeleteValue(ChainedValueName);
-                            }
-                        }
-                    }
-                }
+                // Delete needs to happen after we have released the registry key
+                if (delete)
+                    handlers.DeleteSubKey(Name);
             }
 #endif 
             // Now, remove the main handler extension key, which is 32- or 64-bit, depending on how we were built
