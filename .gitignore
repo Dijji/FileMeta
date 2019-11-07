@@ -28,3 +28,9 @@
 /CommandLineAssociationManager/bin/x64/Release
 /AssociationManager/bin/x64/Release
 /GongSolutions.Wpf.DragDrop/bin/Release/NET35
+/CommandLine/x64/Debug
+/CommandLineAssociationManager/bin/x64/Debug
+/ContextMenuHandler/x64/Debug
+/PropertyHandler/x64/Debug
+/Setup/obj/x64/Debug
+/x64/Debug

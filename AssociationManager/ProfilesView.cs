@@ -385,9 +385,9 @@ namespace FileMetadataAssociationManager
                     {
                         // Check property is not already there
                         var ti = dropInfo.Data as TreeItem;
-                        string property = state.GetSystemPropertyName(ti);
+                        var sp = ti.Item as SystemProperty;
 
-                        if (property != null && !SelectedProfile.HasPropertyInFullDetails(property))
+                        if (sp != null && !SelectedProfile.HasPropertyInFullDetails(sp.FullName))
                         {
                             dropInfo.DropTargetAdorner = DropTargetAdorners.Insert;
                             dropInfo.Effects = DragDropEffects.Copy;
@@ -491,9 +491,10 @@ namespace FileMetadataAssociationManager
                     //                                   dropInfo.InsertPosition & ~RelativeInsertPosition.TargetItemCenter,
                     //                                   dropInfo.TargetItem == null ? "null" : ((TreeItem)dropInfo.TargetItem).Name));
 
-                    string property = state.GetSystemPropertyName((TreeItem)dropInfo.Data);
+                    var ti = dropInfo.Data as TreeItem;
+                    var sp = ti.Item as SystemProperty;
 
-                    SelectedProfile.AddFullDetailsProperty(property, target, before);
+                    SelectedProfile.AddFullDetailsProperty(sp.FullName, target, before);
                     IsDirty = true;
                 }
                 else if (Source == ProfileControls.FullDetails)

@@ -10,6 +10,7 @@ using System.Xml.Serialization;
 using Microsoft.Win32;
 using System.Runtime.InteropServices;
 using AssociationMessages;
+using System.Diagnostics;
 
 namespace FileMetadataAssociationManager
 {
@@ -95,6 +96,7 @@ namespace FileMetadataAssociationManager
 #else
         public void PopulateSystemProperties()
         {
+            List<SystemProperty> systemProperties = new List<SystemProperty>();
             IPropertyDescriptionList propertyDescriptionList = null;
             IPropertyDescription propertyDescription = null;
             Guid guid = new Guid(ShellIIDGuid.IPropertyDescriptionList);
@@ -107,7 +109,6 @@ namespace FileMetadataAssociationManager
                     uint count;
                     propertyDescriptionList.GetCount(out count);
                     guid = new Guid(ShellIIDGuid.IPropertyDescription);
-                    Dictionary<string, List<string>> dict = new Dictionary<string, List<string>>();
 
                     for (uint i = 0; i < count; i++)
                     {
@@ -115,29 +116,14 @@ namespace FileMetadataAssociationManager
 
                         string propName;
                         propertyDescription.GetCanonicalName(out propName);
+                        IntPtr displayNamePtr;
+                        string displayName = null;
+                        propertyDescription.GetDisplayName(out displayNamePtr);
+                        if (displayNamePtr != IntPtr.Zero)
+                            displayName = Marshal.PtrToStringAuto(displayNamePtr);
+                        SystemProperty sp = new SystemProperty {FullName = propName, DisplayName = displayName };
 
-                        List<string> names = null;
-                        string[] parts = propName.Split('.');
-                        if (parts.Count() == 2)
-                        {
-                            // System.Foo
-                            if (!dict.TryGetValue(parts[0], out names))
-                            {
-                                names = new List<string>();
-                                dict.Add(parts[0], names);
-                            }
-                            names.Add(parts[1]);
-                        }
-                        else if (parts.Count() == 3)
-                        {
-                            // System.Bar.Baz
-                            if (!dict.TryGetValue(parts[1], out names))
-                            {
-                                names = new List<string>();
-                                dict.Add(parts[1], names);
-                            }
-                            names.Add(parts[2]);
-                        }
+                        systemProperties.Add(sp);
 
                         // If we ever need it:
                         // ShellPropertyDescription desc = new ShellPropertyDescription(propertyDescription);
@@ -149,22 +135,42 @@ namespace FileMetadataAssociationManager
                         }
                     }
 
-                    // build tree
-                    foreach (string cat in dict.Keys)
-                    {
-                        TreeItem main = new TreeItem(cat, PropType.Group);
-                        foreach (string name in dict[cat])
-                            main.AddChild(new TreeItem(name, PropType.Normal));
+                    Dictionary<string, TreeItem> dict = new Dictionary<string, TreeItem>();
+                    List<TreeItem> roots = new List<TreeItem>();
 
-                        if (cat == "System")
-                            AllProperties.Insert(0, main);
-                        else if (cat == "PropGroup")
+                    // Build tree based on property names
+                    foreach (SystemProperty sp in systemProperties)
+                    {
+                        AddTreeItem(dict, roots, sp);
+                    }
+
+                    // Wire trees to tree controls, tweaking the structure as we go
+                    TreeItem propGroup = null;
+                    foreach (TreeItem root in roots)
+                    {
+                        if (root.Name == "System")
                         {
-                            foreach (TreeItem ti in main.Children)
-                                GroupProperties.Add(ti.Name);
+                            AllProperties.Insert(0, root);
+
+                            // Move property groups from root to their own list
+                            propGroup = root.Children.Where(x => x.Name == "PropGroup").FirstOrDefault();
+                            if (propGroup != null)
+                            {
+                                foreach (TreeItem ti in propGroup.Children)
+                                    GroupProperties.Add(ti.Name);
+                                root.RemoveChild(propGroup);
+                            }
+
+                            // Make remaining children of System that are parents into roots
+                            List<TreeItem> movers = new List<TreeItem>(root.Children.Where(x => x.Children.Count() > 0));
+                            foreach (TreeItem ti in movers)
+                            {
+                                root.RemoveChild(ti);
+                                AllProperties.Add(ti);
+                            }
                         }
                         else
-                            AllProperties.Add(main);
+                            AllProperties.Add(root);
                     }
                 }
             }
@@ -181,26 +187,62 @@ namespace FileMetadataAssociationManager
             }
         }
 
-        public string GetSystemPropertyName(TreeItem ti)
-        {
-            if (ti == null || (PropType)ti.Item != PropType.Normal)
-                return null;
-            else 
-            {
-                StringBuilder sb = new StringBuilder(ti.Name);
-                bool hasSystem = false;
-                for (TreeItem parent = ti.Parent; parent != null; parent = parent.Parent)
-                {
-                    sb.Insert(0, ".");
-                    sb.Insert(0, parent.Name);
-                    if(parent.Name == "System")
-                        hasSystem = true;
-                }
-                if (!hasSystem)
-                    sb.Insert(0, "System.");
+        // Top level entry point for the algorithm that builds the property name tree from an unordered sequence
+        // of property names
+        private TreeItem AddTreeItem(Dictionary<string, TreeItem> dict, List<TreeItem> roots, SystemProperty sp)
+         {
+            Debug.Assert(sp.FullName.Contains('.')); // Because the algorithm assumes that this is the case
+            TreeItem ti = AddTreeItemInner(dict, roots, sp.FullName, sp.DisplayName);
+            ti.Item = sp;
 
-                return sb.ToString();
+            return ti;
+        }
+
+        // Recurse backwards through each term in the property name, adding tree items as we go,
+        // until we join onto an existing part of the tree
+        private TreeItem AddTreeItemInner(Dictionary<string, TreeItem> dict, List<TreeItem> roots, 
+            string name, string displayName = null)
+        {
+            TreeItem ti, parent;
+            string parentName = FirstPartsOf(name);
+
+            if (parentName != null)
+            {
+                if (!dict.TryGetValue(parentName, out parent))
+                {
+                    parent = AddTreeItemInner(dict, roots, parentName);
+                    dict.Add(parentName, parent);
+                }
+
+                if (displayName != null)
+                    ti = new TreeItem(String.Format("{0} ({1})", LastPartOf(name), displayName));
+                else
+                    ti = new TreeItem(LastPartOf(name));
+
+                parent.AddChild(ti);
             }
+            else
+            {
+                if (!dict.TryGetValue(name, out ti))
+                {
+                    ti = new TreeItem(name);
+                    roots.Add(ti);
+                }
+            }
+
+            return ti;
+        }
+
+        private string FirstPartsOf(string name)
+        {
+            int index = name.LastIndexOf('.');
+            return index >= 0 ? name.Substring(0, index) : null;
+        }
+
+        private string LastPartOf(string name)
+        {
+            int index = name.LastIndexOf('.');
+            return index >= 0 ? name.Substring(index + 1) : name;
         }
 #endif
 
@@ -387,5 +429,11 @@ namespace FileMetadataAssociationManager
 
             return target;
         }
+    }
+
+    public class SystemProperty
+    {
+        public string FullName { get; set; }
+        public string DisplayName { get; set; }
     }
 }
