@@ -121,6 +121,8 @@
     <Compile Include="Code Pack\ShellPropertyEnumType.cs" />
     <Compile Include="Code Pack\ShellPropertyFactory.cs" />
     <Compile Include="SavedState.cs" />
+    <Compile Include="SearchTextBox\ListBoxEx.cs" />
+    <Compile Include="SearchTextBox\SearchTextBox.cs" />
     <Compile Include="State.cs" />
     <Compile Include="TreeItem.cs" />
     <Page Include="HowTo.xaml">
@@ -144,6 +146,14 @@
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Page Include="Themes\Generic.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Themes\ListBoxEx.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs">
@@ -196,6 +206,15 @@
       <Project>{0C6674CC-6D49-414A-9B41-D4E175028FFB}</Project>
       <Name>GongSolutions.Wpf.DragDrop %28NET35%29</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <Resource Include="Resources\ic_add_black_18dp.png" />
+    <Resource Include="Resources\ic_clear_black_18dp.png" />
+    <Resource Include="Resources\ic_keyboard_arrow_down_black_18dp.png" />
+    <Resource Include="Resources\ic_keyboard_arrow_up_black_18dp.png" />
+    <Resource Include="Resources\ic_search_black_18dp.png" />
+    <Resource Include="Resources\ic_unfold_more_black_18dp.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

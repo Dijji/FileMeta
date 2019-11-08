@@ -23,6 +23,8 @@ namespace FileMetadataAssociationManager
     {
         private State state;
         private ProfilesView view;
+        private TreeItem[] tiArray = null;
+        private int searchIndex = -1;
 
         public ProfilesWindow(State state)
         {
@@ -34,6 +36,9 @@ namespace FileMetadataAssociationManager
 
             view = new ProfilesView(this, state);
             this.DataContext = view;
+
+            // Supply the Search control with the list of sections
+            searchTextBox.SectionsList = new List<string> { "System", "Display" }; ;
         }
 
         public ProfileControls IdentifyControl(UIElement control)
@@ -108,10 +113,10 @@ namespace FileMetadataAssociationManager
 
         void TreeViewItem_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
         {
-            TreeViewItem treeViewItem = 
+            TreeViewItem treeViewItem =
                       VisualUpwardSearch<TreeViewItem>(e.OriginalSource as DependencyObject);
 
-            if(treeViewItem != null)
+            if (treeViewItem != null)
             {
                 //System.Diagnostics.Trace.WriteLine(String.Format("preview selecting {0}", ((TreeItem)treeViewItem.Header).Name));
                 treeViewItem.Focus();
@@ -124,14 +129,14 @@ namespace FileMetadataAssociationManager
         {
             DependencyObject returnVal = source;
 
-            while(returnVal != null && !(returnVal is T))
+            while (returnVal != null && !(returnVal is T))
             {
                 DependencyObject tempReturnVal = null;
-                if(returnVal is Visual) // || returnVal is Visual3D)
+                if (returnVal is Visual) // || returnVal is Visual3D)
                 {
                     tempReturnVal = VisualTreeHelper.GetParent(returnVal);
                 }
-                if(tempReturnVal == null)
+                if (tempReturnVal == null)
                 {
                     returnVal = LogicalTreeHelper.GetParent(returnVal);
                 }
@@ -261,7 +266,7 @@ namespace FileMetadataAssociationManager
                     Profile p = ti.Item as Profile;
                     canExecute = view.IsProfileWritable(p);
                 }
-             }
+            }
 
             e.CanExecute = canExecute;
             if (!canExecute)
@@ -428,5 +433,281 @@ namespace FileMetadataAssociationManager
             tb.SelectionStart = 0;
             tb.SelectionLength = tb.Text.Length;
         }
+
+        private void searchTextBox_OnSearch(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Obtain the property array if we have not already done so
+                if (tiArray == null)
+                {
+                    var tiList = new List<TreeItem>();
+
+                    foreach (var ti in state.AllProperties)
+                        BuildTreeItemList(tiList, ti);
+
+                    tiArray = tiList.ToArray();
+                }
+
+                var args = e as SearchEventArgs;
+                bool system = args.Sections.Contains("System");
+                bool display = args.Sections.Contains("Display");
+                bool found = false;
+                switch (args.SearchEventType)
+                {
+                    case SearchEventType.Search:
+                        for (int i = 0; i < tiArray.Count(); i++)
+                        {
+                            found = PropertyHitTest(i, args.Keyword, system, display);
+                            if (found)
+                                break;
+                        }
+                        searchIndex = -1;
+                        break;
+                    case SearchEventType.Next:
+                        for (int i = searchIndex + 1; i < tiArray.Count(); i++)
+                        {
+                            found = PropertyHitTest(i, args.Keyword, system, display);
+                            if (found)
+                            {
+                                searchTextBox.ShowSearch = true;
+                                break;
+                            }
+                        }
+                        break;
+                    case SearchEventType.Previous:
+                        for (int i = searchIndex - 1; i >= 0; i--)
+                        {
+                            found = PropertyHitTest(i, args.Keyword, system, display);
+                            if (found)
+                            {
+                                searchTextBox.ShowSearch = true;
+                                break;
+                            }
+                        }
+                        break;
+                }
+
+                if (!found)
+                    searchTextBox.IndicateSearchFailed(args.SearchEventType);
+            }
+            catch (Exception ex)
+            {
+                // Unclear what we can do here, as we were invoked by an event from the search text box control
+            }
+        }
+
+        private void treeAllProperties_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+        {
+            TreeView tv = (TreeView)sender;
+            TreeItem ti = (TreeItem)tv.SelectedItem; 
+
+            if (tiArray != null)
+            {
+                int index = 0;
+                for (; index < tiArray.Count(); index++)
+                {
+                    if (tiArray[index] == ti)
+                        break;
+                }
+
+                if (index < tiArray.Count() && index != searchIndex)
+                {
+                    searchIndex = index;
+                    searchTextBox.ShowSearch = true;
+                }
+            }
+        }
+
+        private void BuildTreeItemList(List<TreeItem> tiList, TreeItem ti)
+        {
+            if (ti.Children.Count() == 0)
+            {
+                tiList.Add(ti);
+            }
+            else
+            {
+                foreach (var c in ti.Children)
+                    BuildTreeItemList(tiList, c);
+            }
+        }
+
+        private bool PropertyHitTest (int index, string text, bool system, bool display )
+        {
+            SystemProperty sp = tiArray[index].Item as SystemProperty;
+            if ((system && sp.FullName.IndexOf(text, StringComparison.CurrentCultureIgnoreCase) >= 0) ||
+                (display && sp.DisplayName != null && sp.DisplayName.IndexOf(text, StringComparison.CurrentCultureIgnoreCase) >= 0))
+            {
+                searchIndex = index;
+                SelectTreeProperty(tiArray[index]);
+                return true;
+            }
+            else
+                return false;
+        }
+
+        private void SelectTreeProperty (TreeItem ti)
+        {
+            ti.IsSelected = true;
+
+            // This is the slow part, as it involves a walk of the visual items behind the tree view
+            // Unfortunately, there is no binding trick to get around it.
+            var tvi = GetTreeViewItem(treeAllProperties, ti);
+            if (tvi != null)
+                tvi.BringIntoView();
+        }
+
+        // Microsoft provided code to search for a TreeViewItem for a given item
+        // from docs.microsoft.com/en-us/dotnet/framework/wpf/controls/how-to-find-a-treeviewitem-in-a-treeview
+        #region TreeViewItem search
+
+        /// <summary>
+        /// Recursively search for an item in this subtree.
+        /// </summary>
+        /// <param name="container">
+        /// The parent ItemsControl. This can be a TreeView or a TreeViewItem.
+        /// </param>
+        /// <param name="item">
+        /// The item to search for.
+        /// </param>
+        /// <returns>
+        /// The TreeViewItem that contains the specified item.
+        /// </returns>
+        private TreeViewItem GetTreeViewItem(ItemsControl container, object item)
+        {
+            if (container != null)
+            {
+                if (container.DataContext == item)
+                {
+                    return container as TreeViewItem;
+                }
+
+                // Expand the current container
+                if (container is TreeViewItem && !((TreeViewItem)container).IsExpanded)
+                {
+                    container.SetValue(TreeViewItem.IsExpandedProperty, true);
+                }
+
+                // Try to generate the ItemsPresenter and the ItemsPanel.
+                // by calling ApplyTemplate.  Note that in the 
+                // virtualizing case even if the item is marked 
+                // expanded we still need to do this step in order to 
+                // regenerate the visuals because they may have been virtualized away.
+
+                container.ApplyTemplate();
+                ItemsPresenter itemsPresenter =
+                    (ItemsPresenter)container.Template.FindName("ItemsHost", container);
+                if (itemsPresenter != null)
+                {
+                    itemsPresenter.ApplyTemplate();
+                }
+                else
+                {
+                    // The Tree template has not named the ItemsPresenter, 
+                    // so walk the descendents and find the child.
+                    itemsPresenter = FindVisualChild<ItemsPresenter>(container);
+                    if (itemsPresenter == null)
+                    {
+                        container.UpdateLayout();
+
+                        itemsPresenter = FindVisualChild<ItemsPresenter>(container);
+                    }
+                }
+
+                Panel itemsHostPanel = (Panel)VisualTreeHelper.GetChild(itemsPresenter, 0);
+
+
+                // Ensure that the generator for this panel has been created.
+                UIElementCollection children = itemsHostPanel.Children;
+
+                MyVirtualizingStackPanel virtualizingPanel =
+                    itemsHostPanel as MyVirtualizingStackPanel;
+
+                for (int i = 0, count = container.Items.Count; i < count; i++)
+                {
+                    TreeViewItem subContainer;
+                    if (virtualizingPanel != null)
+                    {
+                        // Bring the item into view so 
+                        // that the container will be generated.
+                        virtualizingPanel.BringIntoView(i);
+
+                        subContainer =
+                            (TreeViewItem)container.ItemContainerGenerator.
+                            ContainerFromIndex(i);
+                    }
+                    else
+                    {
+                        subContainer =
+                            (TreeViewItem)container.ItemContainerGenerator.
+                            ContainerFromIndex(i);
+
+                        // Bring the item into view to maintain the 
+                        // same behavior as with a virtualizing panel.
+                        subContainer.BringIntoView();
+                    }
+
+                    if (subContainer != null)
+                    {
+                        // Search the next level for the object.
+                        TreeViewItem resultContainer = GetTreeViewItem(subContainer, item);
+                        if (resultContainer != null)
+                        {
+                            return resultContainer;
+                        }
+                        else
+                        {
+                            // The object is not under this TreeViewItem
+                            // so collapse it.
+                            subContainer.IsExpanded = false;
+                        }
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Search for an element of a certain type in the visual tree.
+        /// </summary>
+        /// <typeparam name="T">The type of element to find.</typeparam>
+        /// <param name="visual">The parent element.</param>
+        /// <returns></returns>
+        private T FindVisualChild<T>(Visual visual) where T : Visual
+        {
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(visual); i++)
+            {
+                Visual child = (Visual)VisualTreeHelper.GetChild(visual, i);
+                if (child != null)
+                {
+                    T correctlyTyped = child as T;
+                    if (correctlyTyped != null)
+                    {
+                        return correctlyTyped;
+                    }
+
+                    T descendent = FindVisualChild<T>(child);
+                    if (descendent != null)
+                    {
+                        return descendent;
+                    }
+                }
+            }
+
+            return null;
+        }
     }
+
+    public class MyVirtualizingStackPanel : VirtualizingStackPanel
+    {
+        /// <summary>
+        /// Publically expose BringIndexIntoView.
+        /// </summary>
+        public void BringIntoView(int index)
+        {
+            this.BringIndexIntoView(index);
+        }
+    }
+#endregion
 }
