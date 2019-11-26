@@ -1,8 +1,9 @@
 <ResourceDictionary
   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:stb="clr-namespace:SearchTextBox"
   xmlns:mwt="clr-namespace:Microsoft.Windows.Themes;assembly=PresentationFramework.Aero"
-  xmlns:l="clr-namespace:FileMetadataAssociationManager" >
+  xmlns:l="clr-namespace:SearchTextBox" >
     
   <SolidColorBrush x:Key="SearchTextBox_Background" Color="White" />
   <SolidColorBrush x:Key="SearchTextBox_Foreground" Color="Black" />
@@ -89,7 +90,7 @@
                                Height="18" 
                                HorizontalAlignment="Center"
                                VerticalAlignment="Center"
-                               Source="pack://application:,,,/FileMetaAssociationManager;component/Resources/ic_add_black_18dp.png"
+                               Source="../Resources/ic_add_black_18dp.png"
                                ToolTip="Choose filters(s)"
                                
                                />
@@ -107,7 +108,7 @@
                                Height="18" 
                                HorizontalAlignment="Center"
                                VerticalAlignment="Center"
-                               Source="pack://application:,,,/FileMetaAssociationManager;component/Resources/ic_keyboard_arrow_up_black_18dp.png" ToolTip="Previous hit"
+                               Source="../Resources/ic_keyboard_arrow_up_black_18dp.png" ToolTip="Previous hit"
                                
                                />
                     </Border>
@@ -124,7 +125,7 @@
                                Height="18" 
                                HorizontalAlignment="Center"
                                VerticalAlignment="Center"
-                               Source="pack://application:,,,/FileMetaAssociationManager;component/Resources/ic_keyboard_arrow_down_black_18dp.png" ToolTip="Next hit"
+                               Source="../Resources/ic_keyboard_arrow_down_black_18dp.png" ToolTip="Next hit"
                                
                                />
                       </Border>
@@ -141,7 +142,7 @@
                                Height="18" 
                                HorizontalAlignment="Center"
                                VerticalAlignment="Center"
-                               Source="pack://application:,,,/FileMetaAssociationManager;component/Resources/ic_search_black_18dp.png" 
+                               Source="../Resources/ic_search_black_18dp.png" 
                                ToolTip="Search from top"/>
                      </Border>
                      <Border x:Name="PART_PreviousItems"
@@ -155,7 +156,7 @@
                            Height="18" 
                            HorizontalAlignment="Center"
                            VerticalAlignment="Center"
-                           Source="pack://application:,,,/FileMetaAssociationManager;component/Resources/ic_unfold_more_black_18dp.png" ToolTip="Previous keyword(s)"
+                           Source="../Resources/ic_unfold_more_black_18dp.png" ToolTip="Previous keyword(s)"
                        />
                     </Border>
                 </Grid>
@@ -184,7 +185,7 @@
               </MultiTrigger.Conditions>
               <Setter Property="Source"
                       TargetName="SearchIcon"
-                      Value="pack://application:,,,/FileMetaAssociationManager;component/Resources/ic_clear_black_18dp.png" />
+                      Value="../Resources/ic_clear_black_18dp.png" />
             </MultiTrigger>-->
 
           </ControlTemplate.Triggers>

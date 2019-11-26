@@ -5,7 +5,7 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 
-namespace FileMetadataAssociationManager
+namespace SearchTextBox
 {
 
     public class ListBoxEx : ListBox
@@ -25,7 +25,7 @@ namespace FileMetadataAssociationManager
 
                 // load resources
                 ResourceDictionary resDict = new ResourceDictionary();
-                resDict.Source = new Uri("pack://application:,,,/FileMetaAssociationManager;component/Themes/ListBoxEx.xaml");
+                resDict.Source = new Uri("/Themes/ListBoxEx.xaml", UriKind.Relative);
                 if (resDict.Source == null)
                     throw new SystemException();
  

@@ -34,3 +34,8 @@
 /PropertyHandler/x64/Debug
 /Setup/obj/x64/Debug
 /x64/Debug
+/CommandLine/x64/Release
+/ContextMenuHandler/x64/Release
+/PropertyHandler/x64/Release
+/x64/Release
+/Setup/obj/x64/Release

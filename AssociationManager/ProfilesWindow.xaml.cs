@@ -13,6 +13,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using AssociationMessages;
+using SearchTextBox;
 
 namespace FileMetadataAssociationManager
 {
@@ -462,7 +463,8 @@ namespace FileMetadataAssociationManager
                             if (found)
                                 break;
                         }
-                        searchIndex = -1;
+                        if (!found)
+                            searchIndex = -1;
                         break;
                     case SearchEventType.Next:
                         for (int i = searchIndex + 1; i < tiArray.Count(); i++)

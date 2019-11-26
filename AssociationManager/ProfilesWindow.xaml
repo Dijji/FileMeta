@@ -4,6 +4,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:l="clr-namespace:FileMetadataAssociationManager"
+        xmlns:stb="clr-namespace:SearchTextBox"
         xmlns:dd="clr-namespace:GongSolutions.Wpf.DragDrop;assembly=GongSolutions.Wpf.DragDrop"
         Title="Custom Profile Definition" Height="800" Width="1000" FontSize="12" WindowStartupLocation="CenterOwner" 
         Loaded="Window_Loaded" Closing="Window_Closing">
@@ -131,7 +132,7 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <Label x:Uid="Label_8" Grid.Column="0" Content="Properties" VerticalAlignment="Bottom" FontSize="12"/>
-                <l:SearchTextBox Grid.Column="1" x:Name="searchTextBox" SectionsStyle="CheckBoxStyle"
+                <stb:SearchTextBox Grid.Column="1" x:Name="searchTextBox" SectionsStyle="CheckBoxStyle"
                                  OnSearch="searchTextBox_OnSearch"/>
             </Grid>
             <TreeView x:Uid="treeAllProperties" Grid.Row="3" Margin="0,0,10,0" Name="treeAllProperties"  

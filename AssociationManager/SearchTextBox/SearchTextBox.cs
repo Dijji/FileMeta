@@ -11,7 +11,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Controls.Primitives;
 
-namespace FileMetadataAssociationManager
+namespace SearchTextBox
 {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -221,13 +221,13 @@ namespace FileMetadataAssociationManager
                 if (showSearch)
                 {
                     img.Source = new BitmapImage(
-                        new Uri("pack://application:,,,/FileMetaAssociationManager;component/Resources/ic_search_black_18dp.png"));
+                        new Uri("Resources/ic_search_black_18dp.png", UriKind.Relative));
                     img.ToolTip = "Search from top";
                 }
                 else
                 {
                     img.Source = new BitmapImage(
-                        new Uri("pack://application:,,,/FileMetaAssociationManager;component/Resources/ic_clear_black_18dp.png"));
+                        new Uri("Resources/ic_clear_black_18dp.png", UriKind.Relative));
                     img.ToolTip = "Clear search text";
                 }
             }
