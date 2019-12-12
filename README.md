@@ -1,6 +1,8 @@
 # File Metadata
 
-*News:* Version 1.5, the last CodePlex release, is still the recommended [release](../../releases). All [documentation](../../wiki) has been updated to reflect the changes, which are:
+**Latest:** Several recent Issues (e.g. #72, #56) have noted that File Metadata does not work as expected with some media files. The investigation into this is now complete and described [here](../../wiki/Windows-10-and-media-files). The summary is that the current situation is workable, but a new release is in preparation that will clarify and improve it.
+
+Version 1.5, the last CodePlex release, is still the recommended [release](../../releases). All [documentation](../../wiki) has been updated to reflect the changes, which are:
 * Allow the use of File Meta when there is already a property handler installed. The existing property handler is used to read existing metadata, but all new or updated metadata property values are written to the alternate stream store used by File Meta. The existing Preview Panel and Details properties are used as a starting point to which any other properties desired can be added.  Before using this feature, I recommend reading [Using the File Meta Association Manager](../../wiki/Using-the-File-Meta-Association-Manager) to make sure you understand exactly what is going to happen, and how to make it work for you.
 * Support the configuration of the properties shown in the Info Tip displayed when the mouse hovers over a file in Explorer.
 * Provide command line support for the capabilities of the File Meta Association Manager.
