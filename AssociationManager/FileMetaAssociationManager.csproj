@@ -111,6 +111,7 @@
     <Compile Include="Extensions.cs" />
     <Compile Include="ObservableCollectionWithReset.cs" />
     <Compile Include="Profile.cs" />
+    <Compile Include="PropertyHandlerTest.cs" />
     <Compile Include="PropertyListEntry.cs" />
     <Compile Include="Code Pack\PropertyKey.cs" />
     <Compile Include="Code Pack\PropertySystemNativeMethods.cs" />

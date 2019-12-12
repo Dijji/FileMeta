@@ -40,6 +40,10 @@ int wmain(int argc, WCHAR* argv[])
 		SwitchArg promptSwitch(L"p",L"prompt",L"After execution, prompt to continue", false);
 		cmd.add(promptSwitch);
 
+		// Define Explorer view of meta data switch
+		SwitchArg explorerSwitch(L"v", L"explorer", L"Export metadata thisExplorer sees", false);
+		cmd.add(explorerSwitch);
+
 		// Define XML file name override
 		ValueArg<wstring> xmlFileArg(L"x",L"xml",L"Name of XML file (only valid if one target file)",false,L"",L"file name");
 		cmd.add( xmlFileArg );
@@ -83,6 +87,11 @@ int wmain(int argc, WCHAR* argv[])
 			if (!exportSwitch.isSet())
 				throw ArgException(L"-c can only be used with -e", L"console");
 		}
+		else if (explorerSwitch.isSet())
+		{
+			if (!exportSwitch.isSet())
+				throw ArgException(L"-v can only be used with -e", L"explorer");
+		}
 
 		for (auto pos = targetFiles.begin(); pos != targetFiles.end(); ++pos)
 		{
@@ -94,9 +103,11 @@ int wmain(int argc, WCHAR* argv[])
 				result = ERROR_FILE_NOT_FOUND;
 				break;
 			}
-			else if (!checker.HasOurPropertyHandler(targetFile))
+			else if (0 == checker.HasPropertyHandler(targetFile) ||
+					 (-1 == checker.HasPropertyHandler(targetFile) && !explorerSwitch.isSet()))
 			{
-				// Skip files that do not have our property handler
+				// Skip files that do not have our property handler,
+				// unless we were asked for the Explorer view
 				continue;
 			}
 			else if (deleteSwitch.isSet())
@@ -139,7 +150,7 @@ int wmain(int argc, WCHAR* argv[])
 				if (exportSwitch.isSet())
 				{
 					xml_document<WCHAR> doc;
-					ExportMetadata(&doc, targetFile);
+					ExportMetadata(&doc, targetFile, explorerSwitch.isSet());
 
 					// writing to a string rather than directly to the stream is odd, but writing directly does not compile
 					// (trying to access a private constructor on traits - a typically arcane template issue)

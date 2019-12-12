@@ -35,11 +35,11 @@ private:
 class CExtensionChecker
 {
 private:
-	std::map<std::wstring, BOOL> m_extensions;		// map of extensions checked so far
+	std::map<std::wstring, int> m_extensions;		// map of extensions checked so far
 
 public:
-	// See if file is handled by our property handler
-	BOOL HasOurPropertyHandler(wstring fileName);
+	// See if file is handled by our property handler, or another, or none
+	int HasPropertyHandler(wstring fileName);
 };
 
 int AccessResourceString(UINT uId, LPWSTR lpBuffer, int nBufferMax);
@@ -61,7 +61,7 @@ void OutputDebugStringFormat( WCHAR* lpszFormat, ... );
 typedef HRESULT (CALLBACK* PFN_STGOPENSTGEX)(const WCHAR*, DWORD, DWORD, DWORD, void*, void*, REFIID riid, void **);
 
 HRESULT MetadataPresent(wstring targetFile);
-void ExportMetadata (xml_document<WCHAR> *doc, wstring targetFile);
+void ExportMetadata (xml_document<WCHAR> *doc, wstring targetFile, bool explorerView = false);
 void ExportPropertySetData (xml_document<WCHAR> *doc, xml_node<WCHAR> *root, PROPERTYKEY* keys, DWORD& index, CComPtr<IPropertyStore> pStore);
 
 void ImportMetadata (xml_document<WCHAR> *doc, wstring targetFile);

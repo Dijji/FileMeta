@@ -87,6 +87,9 @@
     <Compile Include="..\AssociationManager\PropertyListEntry.cs">
       <Link>PropertyListEntry.cs</Link>
     </Compile>
+    <Compile Include="..\AssociationManager\PropertyHandlerTest.cs">
+      <Link>PropertyHandlerTest.cs</Link>
+    </Compile>
     <Compile Include="..\AssociationManager\SavedState.cs">
       <Link>SavedState.cs</Link>
     </Compile>
@@ -96,6 +99,15 @@
     <Compile Include="..\AssociationManager\TreeItem.cs">
       <Link>TreeItem.cs</Link>
     </Compile>
+    <Compile Include="..\AssociationManager\Code Pack\CoreErrorHelper.cs" />
+    <Compile Include="..\AssociationManager\Code Pack\PropertyKey.cs" />
+    <Compile Include="..\AssociationManager\Code Pack\PropertySystemNativeMethods.cs" />
+    <Compile Include="..\AssociationManager\Code Pack\PropVariant.cs" />
+    <Compile Include="..\AssociationManager\Code Pack\PropVariantNativeMethods.cs" />
+    <Compile Include="..\AssociationManager\Code Pack\ShellPropertyDescription.cs" />
+    <Compile Include="..\AssociationManager\Code Pack\ShellPropertyEnums.cs" />
+    <Compile Include="..\AssociationManager\Code Pack\ShellPropertyEnumType.cs" />
+    <Compile Include="..\AssociationManager\Code Pack\ShellPropertyFactory.cs" />
     <Compile Include="Options.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

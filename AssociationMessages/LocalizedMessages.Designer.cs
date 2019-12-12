@@ -529,6 +529,15 @@ namespace AssociationMessages {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Windows will not allow the handler for {0} to be extended. Using profile with Windows handler..
+        /// </summary>
+        public static string WindowsWontExtendHandler {
+            get {
+                return ResourceManager.GetString("WindowsWontExtendHandler", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Error parsing XML store of saved custom profiles.
         /// </summary>
         public static string XmlParseError {
