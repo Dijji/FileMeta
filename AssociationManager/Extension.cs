@@ -566,18 +566,29 @@ namespace FileMetadataAssociationManager
                 exist = HiddenProgidRegistryEntries(target);
             }
 
-            if (exist)
+            // Cleanup required for hidden cases, and for some old configurations
+            if (exist || PropertyHandlerState == HandlerState.Ours)
             {
-                using (RegistryKey target = GetHKCRProfileKey(true))
+                try
                 {
-                    // Tolerate the case where the extension has been removed since we set up a handler for it
-                    // We still do this even though no longer write entries here so as to be sure to clean up after earlier versions,
-                    // and to restore pre-existing entries if we had to hide them
-                    if (target != null)
+                    using (RegistryKey target = GetHKCRProfileKey(true))
                     {
-                        RemoveProfileDetailRegistryEntries(target);
-                        RemoveContextMenuRegistryEntries(target);
+                        // Tolerate the case where the extension has been removed since we set up a handler for it
+                        // We still do this even though no longer write entries here so as to be sure to clean up after earlier versions,
+                        // and to restore pre-existing entries if we had to hide them
+                        if (target != null)
+                        {
+                            RemoveProfileDetailRegistryEntries(target);
+                            RemoveContextMenuRegistryEntries(target);
+                        }
                     }
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    // Tolerate actors problems if it is our handler. We need to try and get write access
+                    // to clean up settings from older versions, but this fails some extensions like .chm
+                    if (PropertyHandlerState != HandlerState.Ours)
+                        throw ex;
                 }
             }
 
