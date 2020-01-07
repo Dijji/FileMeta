@@ -57,3 +57,8 @@
 /Release
 /Setup/msi/Release
 /Setup/obj/x86/Release
+/CommandLine/FileMeta.aps
+/ContextMenuHandler/ContextMenuHandler.aps
+/PropertyHandler/FileMetaPropertyHandler.aps
+/TestDriverAssoc/.vs/TestDriverAssoc/v15
+/TestSandbox
