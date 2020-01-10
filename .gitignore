@@ -62,3 +62,7 @@
 /PropertyHandler/FileMetaPropertyHandler.aps
 /TestDriverAssoc/.vs/TestDriverAssoc/v15
 /TestSandbox
+/TestDriver/bin/Debug
+/TestDriverAssoc/bin/Debug
+/TestSandbox32
+/CommandLineAssociationManager/CommandLineAssociationManager.csproj.user
