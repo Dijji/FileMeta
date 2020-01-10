@@ -42,6 +42,10 @@ namespace CommandLineAssociationManager
                 "   --d=<definition file name>, --definitions=<definition file name>",
                 "      Profile definitions file to be used for -add",
                 "",
+                "   -m, --merge",
+                "      If set -add merges any existing settings into a new profile. ",
+                "      Otherwise, profile settings are used",
+                "",
                 "   <extension>",
                 "      One or more target extensions for -add or -remove, for example, .txt",
                 "",
@@ -57,6 +61,7 @@ namespace CommandLineAssociationManager
             bool remove = false;
             string profile = null;
             string definitions = null;
+            bool merge = false;
 
             try
             {
@@ -67,6 +72,7 @@ namespace CommandLineAssociationManager
                     { "h|?|help", v => {help = v != null; commands++;} },
                     { "p|profile=", v => profile = v },
                     { "d|definitions=", v => definitions = v },
+                    { "m|merge", v => merge = true },
                 };
                 List<string> extensions = argParser.Parse(args);
 
@@ -120,7 +126,9 @@ namespace CommandLineAssociationManager
                                 ErrorCode = WindowsErrorCodes.ERROR_INVALID_PARAMETER
                             };
 
-                        if (!(e.PropertyHandlerState == HandlerState.Ours || e.PropertyHandlerState == HandlerState.Chained))
+                        if (!(e.PropertyHandlerState == HandlerState.Ours || 
+                              e.PropertyHandlerState == HandlerState.Chained ||
+                              e.PropertyHandlerState == HandlerState.ProfileOnly))
                             throw new AssocMgrException
                             {
                                 Description = String.Format(LocalizedMessages.DoesNotHaveHandler, ext),
@@ -158,7 +166,7 @@ namespace CommandLineAssociationManager
                             e = state.CreateExtension(ext);
                         }
 
-                        e.SetupHandlerForExtension(p, false);
+                        e.SetupHandlerForExtension(p, merge);
                         Console.WriteLine(String.Format(LocalizedMessages.HandlerAddedOK, e.Name));
                     }
                 }

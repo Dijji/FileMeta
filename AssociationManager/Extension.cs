@@ -379,7 +379,9 @@ namespace FileMetadataAssociationManager
                     ErrorCode = WindowsErrorCodes.ERROR_ACCESS_DENIED
                 };
 
-            if (PropertyHandlerState != HandlerState.Ours && PropertyHandlerState != HandlerState.Chained)
+            if (PropertyHandlerState != HandlerState.Ours &&
+                PropertyHandlerState != HandlerState.Chained &&
+                PropertyHandlerState != HandlerState.ProfileOnly)
                 return;
 
             using (RegistryKey target = GetSystemFileAssociationsProfileKey(true))
@@ -488,8 +490,9 @@ namespace FileMetadataAssociationManager
         {
             // Find the key for the extension 
             string pd;
-
+            string opd;
             string cp;
+
             using (RegistryKey target = GetSystemFileAssociationsProfileKey(false))
             {
                 if (target == null)
@@ -497,6 +500,7 @@ namespace FileMetadataAssociationManager
 
                 // Try to identify the profile
                 pd = (string)target.GetValue(PreviewDetailsValueName);
+                opd = (string)target.GetValue(OldPreviewDetailsValueName);
                 cp = (string)target.GetValue(FileMetaCustomProfileValueName);
             }
 
@@ -505,7 +509,7 @@ namespace FileMetadataAssociationManager
                 return State.CustomProfiles.Where(p => p.Name == cp).FirstOrDefault();
 
             // Otherwise, try to match the preview details against one of the built-in values
-            else if (!keyOnly && pd != null)
+            else if ((!keyOnly || opd != null) && pd != null)
                 return State.BuiltInProfiles.Where(p => p.PreviewDetailsString == pd).FirstOrDefault();
 
             return null;
