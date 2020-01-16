@@ -39,10 +39,12 @@
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
-            <StackPanel Grid.Row="2" FlowDirection="RightToLeft" Orientation="Horizontal">
+            <StackPanel Grid.Row="2" Orientation="Horizontal">
                 <Button Content="Run All Tests" Name="RunAll" Margin="5,5,5,5" FontSize="12" Click="RunAll_Click" IsEnabled="{Binding Path=Idle}" />
                 <Button Content="Run Selected Tests" Name="RunSelected" Margin="5,5,5,5" FontSize="12" Click="RunSelected_Click" IsEnabled="{Binding Path=Idle}" />
                 <Button Content="Loop All Tests" Name="LoopAll" Margin="5,5,5,5" FontSize="12" Click="LoopAll_Click" IsEnabled="{Binding Path=IdleOrLooping}" />
+                <Button Content="One off Tests" Name="OneOff" Margin="5,5,5,5" FontSize="12" Click="OneOff_Click" IsEnabled="{Binding Path=Idle}" />
+                <Button Content="Save Results" Name="SaveResults" Margin="5,5,5,5" FontSize="12" Click="SaveResults_Click" IsEnabled="{Binding Path=Idle}" />
              </StackPanel>
         </Grid>
     </Grid>

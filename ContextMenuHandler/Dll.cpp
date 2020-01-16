@@ -22,7 +22,8 @@ struct CLASS_OBJECT_INIT
 // add classes supported by this module here
 const CLASS_OBJECT_INIT c_rgClassObjectInit[] =
 {
-    { &__uuidof(CContextMenuHandler), CContextMenuHandler_CreateInstance }
+    { &__uuidof(CContextMenuHandler), CContextMenuHandler_CreateInstance },
+	{ &__uuidof(CExportContextMenuHandler), CExportContextMenuHandler_CreateInstance }
 };
 
 
@@ -152,12 +153,14 @@ STDAPI DllGetClassObject(REFCLSID clsid, REFIID riid, void **ppv)
 STDAPI DllRegisterServer()
 {
     HRESULT hr = RegisterContextMenuHandler();
+	if (SUCCEEDED(hr)) hr = RegisterExportContextMenuHandler();
     return hr;
 }
 
 STDAPI DllUnregisterServer()
 {
     HRESULT hr = UnregisterContextMenuHandler();
+	if (SUCCEEDED(hr)) hr = UnregisterExportContextMenuHandler();
     return hr;
 }
 

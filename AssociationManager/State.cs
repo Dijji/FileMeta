@@ -68,7 +68,8 @@ namespace FileMetadataAssociationManager
 
         public void SortExtensions()
         {
-            // Sort by file extension, but group by our handler, chained handlers, other handlers, and finally no handler
+            // Sort by file extension, but group by our handler, chained handlers, profile only,
+            // other handlers, and finally no handler
             // This uses a Sort extension to ObservableCollection
             extensions.Sort((e, f) =>
             {
@@ -81,6 +82,10 @@ namespace FileMetadataAssociationManager
                     else if (e.PropertyHandlerState == HandlerState.Chained)
                         return -1;
                     else if (f.PropertyHandlerState == HandlerState.Chained)
+                        return 1;
+                    else if (e.PropertyHandlerState == HandlerState.ProfileOnly)
+                        return -1;
+                    else if (f.PropertyHandlerState == HandlerState.ProfileOnly)
                         return 1;
                     else if (e.PropertyHandlerState == HandlerState.Foreign)
                         return -1;
@@ -409,8 +414,6 @@ namespace FileMetadataAssociationManager
                         if (dictExtensions.TryGetValue(name.ToLower(), out e))
                         {
                             e.RecordPropertyHandler(handlerGuid, handlerChainedGuid);
-
-                            e.IdentifyCurrentProfile();
                         }
                     }
                 }

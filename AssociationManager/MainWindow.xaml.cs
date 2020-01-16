@@ -147,8 +147,32 @@ namespace FileMetadataAssociationManager
             view.SelectedProfile = state.SelectedProfile;
         }
 
+        // Temporary code to enumerate extensions for which Add Handler fails
+        //private void CheckForBlockedExtensions()
+        //{
+        //    using (var w = new System.IO.StreamWriter(@"D:\TestProperties\Results\Extensions.csv"))
+        //    {
+        //        foreach (var ext in state.Extensions.Where(x => x.PropertyHandlerState == HandlerState.Foreign))
+        //        {
+        //            string result = "Exception";
+        //            try
+        //            {
+        //                result = ext.IsPropertyHandlerBlocked() ? "Blocked" : "Ok";
+        //            }
+        //            catch (System.Exception ex)
+        //            {
+        //            }
+        //            w.WriteLine(String.Format("{0}, {1}, {2}", ext.Name, result, ext.PropertyHandlerDisplay));
+        //        }
+        //    }
+        //}
+
         private void restartExplorer_Click(object sender, RoutedEventArgs e)
         {
+            // Temporary code to enumerate extensions for which Add Handler fails
+            //CheckForBlockedExtensions();
+            //return;
+
             bool failed = false;
             try
             {

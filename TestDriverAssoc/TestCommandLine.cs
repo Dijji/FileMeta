@@ -1,5 +1,6 @@
 ﻿// Copyright (c) 2016, Dijji, and released under Ms-PL.  This, with other relevant licenses, can be found in the root of this distribution.
 
+using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -19,6 +20,19 @@ namespace TestDriverAssoc
             ERROR_XML_PARSE_ERROR = 1465,
         }
 
+        private static int? releaseVersion = null;
+        private static int ReleaseVersion
+        {
+            get
+            {
+                if (releaseVersion == null)
+                {
+                    var val = Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion", "ReleaseId", null);
+                    releaseVersion = val != null ? Int32.Parse(val.ToString()) : 0;
+                }
+                return (int)releaseVersion;
+            }
+        }
         /// <summary>
         /// 
         /// </summary>
@@ -112,6 +126,17 @@ namespace TestDriverAssoc
                 Add(state, "Extend existing .bmp property handler with both settings", "V15ExtendedBmpBoth", "-p=.bmp -d=SavedState.xml", ref Const.V15ExtendedBmpBoth, ref pass, Const.V15UnExtendedBoth);
                 Common.ResetProfile();
 
+                if (ReleaseVersion >= 1903)
+                {
+                    // Test profile only
+                    var initial = AddExtend(state, "Profile existing .mkv property handler with simple", ".mkv", "-p=simple", ref Const.V15ExtendedMkv, ref pass);
+                    RemoveExtend(state, "Remove extended .mkv profile", ".mkv", ref initial, ref pass);
+                    initial = AddExtend(state, "Profile existing .mkv property handler with merge", ".mkv", "-p=simple -m", ref Const.V15ExtendedMergedMkv, ref pass);
+                    RemoveExtend(state, "Remove extended .mkv profile", ".mkv", ref initial, ref pass);
+                    initial = AddExtend(state, "Profile existing .mkv property handler with custom", ".mkv", "-p=.mkv", ref Const.V15ExtendedMergedMkv, ref pass);
+                    RemoveExtend(state, "Remove extended .mkv profile", ".mkv", ref initial, ref pass);
+                }
+
                 state.AddReport(String.Format("#{0}: {1}", state.TestCounter++, pass ? "Passed" : "Failed"));
                 overallPass &= pass;
 
@@ -120,16 +145,16 @@ namespace TestDriverAssoc
                 state.AddReport("");
                 state.AddReport(String.Format("#{0}: Test various error conditions", state.TestCounter));
 
-                Error(state, "No arguments at all", "", WindowsErrorCode.ERROR_INVALID_PARAMETER, ref pass, true);
-                Error(state, "Bad command", "-x", WindowsErrorCode.ERROR_INVALID_PARAMETER, ref pass, true);
-                Error(state, "Two commands", "-a -r", WindowsErrorCode.ERROR_INVALID_PARAMETER, ref pass, true);
-                Error(state, "Remove without an extension", "-r", WindowsErrorCode.ERROR_INVALID_PARAMETER, ref pass, true);
-                Error(state, "Remove with a bad extension", "-r nosuch", WindowsErrorCode.ERROR_INVALID_PARAMETER, ref pass, true);
-                Error(state, "Remove with a non-existent extension", "-r", WindowsErrorCode.ERROR_INVALID_PARAMETER, ref pass, false);
-                Error(state, "Add without an extension", "-a", WindowsErrorCode.ERROR_INVALID_PARAMETER, ref pass, true);
-                Error(state, "Add without a profile", "-a", WindowsErrorCode.ERROR_INVALID_PARAMETER, ref pass, false);
-                Error(state, "Add with a bad profile", "-a -p=nosuch", WindowsErrorCode.ERROR_INVALID_PARAMETER, ref pass, false);
-                Error(state, "Add with a data file and a bad profile", "-a -p=nosuch -d=SavedState.xml", WindowsErrorCode.ERROR_INVALID_PARAMETER, ref pass, false);
+                Error(state, "No arguments at all", "", WindowsErrorCode.ERROR_INVALID_PARAMETER, ref pass, null);
+                Error(state, "Bad command", "-x", WindowsErrorCode.ERROR_INVALID_PARAMETER, ref pass, null);
+                Error(state, "Two commands", "-a -r", WindowsErrorCode.ERROR_INVALID_PARAMETER, ref pass, null);
+                Error(state, "Remove without an extension", "-r", WindowsErrorCode.ERROR_INVALID_PARAMETER, ref pass, null);
+                Error(state, "Remove with a bad extension", "-r nosuch", WindowsErrorCode.ERROR_INVALID_PARAMETER, ref pass, null);
+                Error(state, "Remove with a non-existent extension", "-r", WindowsErrorCode.ERROR_INVALID_PARAMETER, ref pass);
+                Error(state, "Add without an extension", "-a", WindowsErrorCode.ERROR_INVALID_PARAMETER, ref pass, null);
+                Error(state, "Add without a profile", "-a", WindowsErrorCode.ERROR_INVALID_PARAMETER, ref pass);
+                Error(state, "Add with a bad profile", "-a -p=nosuch", WindowsErrorCode.ERROR_INVALID_PARAMETER, ref pass);
+                Error(state, "Add with a data file and a bad profile", "-a -p=nosuch -d=SavedState.xml", WindowsErrorCode.ERROR_INVALID_PARAMETER, ref pass);
 
                 state.AddReport(String.Format("#{0}: {1}", state.TestCounter++, pass ? "Passed" : "Failed"));
                 overallPass &= pass;
@@ -237,10 +262,60 @@ namespace TestDriverAssoc
                 RegState.Wipe(Const.TestExt);
         }
 
-        private static void Error(State state, string description, string args, WindowsErrorCode error, ref bool pass, bool noExtension)
+        public static RegState AddExtend(State state, string description, string ext, string args, ref RegState final, ref bool pass)
         {
             state.AddReport(description);
-            var result = InvokeFileMetaAssoc(state, args, true, noExtension);
+            var initial = new RegState();
+            initial.Read(ext);
+
+            var result = InvokeFileMetaAssoc(state, "-a " + args, true, ext);
+            if (result != 0)
+            {
+                state.AddReport(String.Format("FileMetaAssoc -a failed for {0}", ext));
+                pass = false;
+            }
+
+            if (pass)
+            {
+                var outcome = new RegState();
+                outcome.Read(ext);
+
+                // Verify that we got the final state
+                if (outcome != final)
+                {
+                    state.AddReport(String.Format("Add did not produce the expected final registry state for {0}", ext));
+                    pass = false;
+                }
+            }
+
+            return initial;
+        }
+
+        public static void RemoveExtend(State state, string description, string ext, ref RegState final, ref bool pass)
+        {
+            state.AddReport(description);
+            var result = InvokeFileMetaAssoc(state, "-r", true, ext);
+            if (result != 0)
+            {
+                state.AddReport(String.Format("FileMetaAssoc -r failed for {0}", ext));
+                pass = false;
+            }
+
+            var outcome = new RegState();
+            outcome.Read(ext);
+        
+            // If the final state was specified, verify that we got it
+            if (outcome != final)
+            {
+                state.AddReport(String.Format("Remove did not produce the expected final registry state for {0}", ext));
+                pass = false;
+            }
+        }
+
+        private static void Error(State state, string description, string args, WindowsErrorCode error, ref bool pass, string extension = Const.TestExt)
+        {
+            state.AddReport(description);
+            var result = InvokeFileMetaAssoc(state, args, true, extension);
 
             if (result != (int)error)
             {
@@ -249,7 +324,7 @@ namespace TestDriverAssoc
             }
         }
 
-        private static int InvokeFileMetaAssoc(State state, string args, bool noErrorReport = false, bool noExtension = false)
+        private static int InvokeFileMetaAssoc(State state, string args, bool noErrorReport = false, string extension = Const.TestExt)
         {
             Process p = new Process();
             string line;
@@ -260,10 +335,10 @@ namespace TestDriverAssoc
             p.StartInfo.RedirectStandardError = true;
             p.StartInfo.CreateNoWindow = true;
             p.StartInfo.FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), @"File Metadata\FileMetaAssoc.exe");
-            if (noExtension)
+            if (extension == null)
                 p.StartInfo.Arguments = args;
             else
-                p.StartInfo.Arguments = String.Format("{0} \"{1}\"", args, Const.TestExt);
+                p.StartInfo.Arguments = String.Format("{0} \"{1}\"", args, extension);
             p.Start();
             while (true)
             {
