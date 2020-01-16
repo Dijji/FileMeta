@@ -3,6 +3,7 @@
 #include <windows.h>
 #include <shlwapi.h>
 #include <propkey.h>
+#include <propvarutil.h>
 #include "dll.h"
 #include "RegisterExtension.h"
 
@@ -119,9 +120,12 @@ HRESULT CPropertyHandler::GetValue(REFPROPERTYKEY key, PROPVARIANT *pPropVar)
     PropVariantInit(pPropVar);
 	HRESULT hr = OpenStore(FALSE);
 	// Take the File Meta property value first, and if there isn't one,
+	// see if this is a check for the software product name, which we use as a marker, or if not
 	// try for a chained property value
     hr = SUCCEEDED(hr) ? _pStore->GetValue(key, pPropVar) : hr;
-    if (_pChainedPropStore != NULL && SUCCEEDED(hr) && pPropVar->vt == VT_EMPTY)
+	if (SUCCEEDED(hr) && pPropVar->vt == VT_EMPTY && key == PKEY_Software_ProductName)
+		hr = InitPropVariantFromString(L"FileMetadata", pPropVar);
+    else if (_pChainedPropStore != NULL && SUCCEEDED(hr) && pPropVar->vt == VT_EMPTY)
         hr = _pChainedPropStore->GetValue(key, pPropVar);
     return hr;
 }

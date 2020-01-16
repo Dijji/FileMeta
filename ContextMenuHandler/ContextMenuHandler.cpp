@@ -147,7 +147,6 @@ IFACEMETHODIMP CContextMenuHandler::QueryContextMenu(
         if (hDrop != NULL)
         {
             // Determine how many files are involved in this operation. 
-            // We show the custom context menu item only when exactly one file is selected
             UINT nFiles = DragQueryFile(hDrop, 0xFFFFFFFF, NULL, 0);
 	 		WCHAR buff[MAX_PATH];
 
@@ -258,9 +257,9 @@ IFACEMETHODIMP CContextMenuHandler::InvokeCommand(LPCMINVOKECOMMANDINFO pici)
 				for (int i = 0; i < m_files.size(); i++)
 				{
 					// In the multi-file case, we know only that at least one of the files has our context menu,
-					// so we need to check the extension of each file to see if our propertyhandler is configured for it
+					// so we need to check the extension of each file to see if a propertyhandler is configured for it
 					if (m_files.size() > 1)
-						if (!m_checker.HasOurPropertyHandler(m_files[i]))
+						if (0 == m_checker.HasPropertyHandler(m_files[i]))
 							continue;
 
 					// Build an XML document containing thw metadata
@@ -307,7 +306,7 @@ IFACEMETHODIMP CContextMenuHandler::InvokeCommand(LPCMINVOKECOMMANDINFO pici)
 					// In the multi-file case, we know only that at least one of the files has our context menu,
 					// so we need to check the extension of each file to see if our propertyhandler is configured for it
 					if (m_files.size() > 1)
-						if (!m_checker.HasOurPropertyHandler(m_files[i]))
+						if (1 != m_checker.HasPropertyHandler(m_files[i]))
 							continue;
 
 					wstring szXmlTarget = m_files[i];
@@ -409,7 +408,7 @@ IFACEMETHODIMP CContextMenuHandler::InvokeCommand(LPCMINVOKECOMMANDINFO pici)
 					// so we need to check the extension of each file to see if our propertyhandler is configured for it
 					if (m_files.size() > 1)
 					{
-						if (!m_checker.HasOurPropertyHandler(m_files[i]))
+						if (1 != m_checker.HasPropertyHandler(m_files[i]))
 							continue;
 
 						// Also, we need to check if metadata is present, to avoid adding an empty alternate stream by opening

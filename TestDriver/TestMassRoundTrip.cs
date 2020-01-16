@@ -23,6 +23,7 @@ namespace TestDriver
     {
         public override string Name { get { return String.Format("Write, read, export and import as many properties on '{0}' file as possible", extension); } }
         private string extension;
+        private string fullFileName;
         private Random random = new Random();
         private const int max16 = 32767;
         private const int max32 = 2147483647;
@@ -30,21 +31,26 @@ namespace TestDriver
         private long maxTocks = DateTime.MaxValue.Ticks;
         private List<SavedProp> savedProps;
 
-        public TestMassRoundTrip(string extension)
+        public TestMassRoundTrip(string extension, string fullFileName = null)
         {
             this.extension = extension;
+            this.fullFileName = fullFileName;
         }
 
         public override bool RunBody(State state)
         {
-            RequirePropertyHandlerRegistered();
-            RequireContextHandlerRegistered();
-            RequireExtHasHandler(extension);
+            // Unless we are working with a specific target file, ensure the extension is setup
+            if (fullFileName == null)
+            {
+                RequirePropertyHandlerRegistered();
+                RequireContextHandlerRegistered();
+                RequireExtHasHandler(extension);
+            }
 
             state.RecordEntry(String.Format("Starting mass property setting on '{0}'...", extension));
 
             //Create a temp file to put metadata on
-            string fileName = CreateFreshFile(1, extension);
+            string fileName = fullFileName == null ? CreateFreshFile(1, extension) : fullFileName;
 
             savedProps = new List<SavedProp>();
 
@@ -64,7 +70,15 @@ namespace TestDriver
                 // Use API Code Pack to set the value, except for strings, because the Code Pack blows when setting strings of length 1 !!
                 // Still use Code Pack elsewhere for its nullable type handling
                 IShellProperty prop = ShellObject.FromParsingName(fileName).Properties.GetProperty(propDesc.CanonicalName);
-                SetPropertyValue(fileName, propDesc, prop);
+                try
+                {
+                    SetPropertyValue(fileName, propDesc, prop);
+                }
+                catch (Exception vx)
+                {
+                    state.RecordEntry(vx.Message +
+                        (vx.InnerException != null ? ": " + vx.InnerException.Message : ""));
+                }
             }
             state.RecordEntry(String.Format("{0} property values set on {1}", savedProps.Count, fileName));
 
@@ -75,6 +89,8 @@ namespace TestDriver
 
             if (errors > 0)
                 return false;
+            else if (fullFileName != null) // If we have a single target file, we are done
+                return true;
 
             // Use ContextHandler to export all the values
             var contextHandler = new CContextMenuHandler();
@@ -118,7 +134,7 @@ namespace TestDriver
 
             state.RecordEntry(String.Format("{0} properties read back, {1} mismatches", savedProps.Count, errors));
 
-            // Clean up files - checks if they have been released, too
+            // Clean up generated files - checks if they have been released, too
             // Leave files around for analysis if there have been problems
             if (errors == 0)
             {

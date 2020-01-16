@@ -279,4 +279,7 @@
   <data name="AtLeastOneExtension" xml:space="preserve">
     <value>-add and -remove commands require at least one extension to be specified</value>
   </data>
+  <data name="WindowsWontExtendHandler" xml:space="preserve">
+    <value>Windows will not allow the handler for {0} to be extended. Using profile with Windows handler.</value>
+  </data>
 </root>

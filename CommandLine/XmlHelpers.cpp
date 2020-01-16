@@ -7,6 +7,7 @@
 #include "tclap/CmdLine.h"
 #include <strsafe.h>
 #include <direct.h>
+#include <shobjidl.h>
 
 using namespace TCLAP;
 
@@ -58,11 +59,12 @@ WCHAR* CPHException::GetMessage()
 	return _pszError;
 }
 
-// See if file is handled by our property handler
-BOOL CExtensionChecker::HasOurPropertyHandler(wstring fileName)
+// See if file is handled by our property handler, or another one, or none
+// Returns 1 if our handler is used, 0 if no handler is set up, or -1 if a foreign handler is used
+int CExtensionChecker::HasPropertyHandler(wstring fileName)
 {
 	WCHAR pszExt[_MAX_EXT];
-	BOOL val = FALSE;
+	int val = 0;
 
 	// Try and get the extension
 	if (0 == _wsplitpath_s(fileName.c_str(), NULL, 0, NULL, 0, NULL, 0, pszExt, _MAX_EXT))
@@ -78,16 +80,18 @@ BOOL CExtensionChecker::HasOurPropertyHandler(wstring fileName)
 
 		WCHAR buffer[_MAX_EXT];
 		DWORD size = _MAX_EXT;
-		// Not finding the key results in FALSE
+		// Not finding the key results in 0
 		if (ERROR_SUCCESS == RegGetValue(HKEY_LOCAL_MACHINE, subKey.c_str(), NULL, RRF_RT_REG_SZ, NULL, buffer, &size))
 		{
-			// If the key is found, TRUE iff our property handler
+			// If the key is found, 1 iff our property handler, else -1
 #ifdef _WIN64
-			val = (0 == StrCmpI(buffer, OurPropertyHandlerGuid64));
+			val = (0 == StrCmpI(buffer, OurPropertyHandlerGuid64)) ? 1 : -1;
 #else
-			val = (0 == StrCmpI(buffer, OurPropertyHandlerGuid32));
+			val = (0 == StrCmpI(buffer, OurPropertyHandlerGuid32)) ? 1 : -1;
 #endif	
 		}
+		else
+			val = 0;
 
 		m_extensions[pszExt] = val;
 	}
@@ -363,66 +367,75 @@ inline bool operator<(const PROPERTYKEY& a, const PROPERTYKEY& b)
 		return a.pid < b.pid;
 }
 
-void ExportMetadata (xml_document<WCHAR> *doc, wstring targetFile)
+void ExportMetadata (xml_document<WCHAR> *doc, wstring targetFile, bool explorerView)
 {
     HRESULT hr = E_UNEXPECTED;
+	CComPtr<IPropertyStore> pStore;
+	PROPERTYKEY * keys = NULL;
 
 	xml_node<WCHAR> *root = doc->allocate_node(node_element, MetadataNodeName);
 	doc->append_node(root);
 
-	if (GetStgOpenStorageEx())
+	try
 	{
-		CComPtr<IPropertySetStorage> pPropSetStg;
-		CComPtr<IPropertyStore> pStore;
-		PROPERTYKEY * keys = NULL;
-
-		try
+		if (explorerView)
 		{
-			hr = (v_pfnStgOpenStorageEx)(targetFile.c_str(), STGM_READ | STGM_SHARE_EXCLUSIVE, STGFMT_FILE, 0, NULL, 0, 
-					IID_IPropertySetStorage, (void**)&pPropSetStg);
-			if( FAILED(hr) ) 
-				throw CPHException(ERROR_OPEN_FAILED, hr, IDS_E_IPSS_1, hr);
-
-			hr = PSCreatePropertyStoreFromPropertySetStorage(pPropSetStg, STGM_READ, IID_IPropertyStore, (void **)&pStore);
-			pPropSetStg.Release();
-			if( FAILED(hr) ) 
-				throw CPHException(ERROR_OPEN_FAILED, hr, IDS_E_PSCREATE_1, hr);
-
-			DWORD cProps;
-			hr = pStore->GetCount(&cProps);
-			if( FAILED(hr) ) 
-				throw CPHException(ERROR_OPEN_FAILED, hr, IDS_E_IPS_GETCOUNT_1, hr);
-
-			keys = new PROPERTYKEY[cProps];
-
-			for (DWORD i = 0; i < cProps; i++)
+			// Access the property store that Explorer would see - will not always be our handler	
+			hr = SHGetPropertyStoreFromParsingName(targetFile.c_str(), NULL, GPS_READWRITE, IID_IPropertyStore, (void **)&pStore);
+		}
+		else
+		{
+			// Always use our own handler, which will access the alternate stream
+			CComPtr<IPropertySetStorage> pPropSetStg;
+			if (GetStgOpenStorageEx())
 			{
-				hr = pStore->GetAt(i, &keys[i]);
+				hr = (v_pfnStgOpenStorageEx)(targetFile.c_str(), STGM_READ | STGM_SHARE_EXCLUSIVE, STGFMT_FILE, 0, NULL, 0,
+						IID_IPropertySetStorage, (void**)&pPropSetStg);
 				if( FAILED(hr) ) 
-					throw CPHException(ERROR_UNKNOWN_PROPERTY, hr, IDS_E_IPS_GETAT_1, hr);
-			}
+					throw CPHException(ERROR_OPEN_FAILED, hr, IDS_E_IPSS_1, hr);
 
-			// Sort keys into their property sets
-			// We used to use IPropertyStorage to get the grouping, but this worked badly with Unicode property value
-			sort(keys, &keys[cProps]);
-
-			// Loop through all the properties
-			DWORD index = 0;
-
-			while( index < cProps)
-			{
-				// Export the properties in the property set - throws exceptions on error
-				ExportPropertySetData( doc, root, keys, index, pStore );
+				hr = PSCreatePropertyStoreFromPropertySetStorage(pPropSetStg, STGM_READ, IID_IPropertyStore, (void **)&pStore);
+				pPropSetStg.Release();
 			}
 		}
-		catch (CPHException& e)
+
+		if( FAILED(hr) ) 
+			throw CPHException(ERROR_OPEN_FAILED, hr, IDS_E_PSCREATE_1, hr);
+
+		DWORD cProps;
+		hr = pStore->GetCount(&cProps);
+		if( FAILED(hr) ) 
+			throw CPHException(ERROR_OPEN_FAILED, hr, IDS_E_IPS_GETCOUNT_1, hr);
+
+		keys = new PROPERTYKEY[cProps];
+
+		for (DWORD i = 0; i < cProps; i++)
 		{
-			delete [] keys;
-			throw e;
+			hr = pStore->GetAt(i, &keys[i]);
+			if( FAILED(hr) ) 
+				throw CPHException(ERROR_UNKNOWN_PROPERTY, hr, IDS_E_IPS_GETAT_1, hr);
 		}
 
-		delete [] keys;
+		// Sort keys into their property sets
+		// We used to use IPropertyStorage to get the grouping, but this worked badly with Unicode property value
+		sort(keys, &keys[cProps]);
+
+		// Loop through all the properties
+		DWORD index = 0;
+
+		while( index < cProps)
+		{
+			// Export the properties in the property set - throws exceptions on error
+			ExportPropertySetData( doc, root, keys, index, pStore );
+		}
 	}
+	catch (CPHException& e)
+	{
+		delete [] keys;
+		throw e;
+	}
+
+	delete [] keys;
 }
 
 // throws CPHException on error

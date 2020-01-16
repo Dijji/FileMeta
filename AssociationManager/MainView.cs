@@ -164,6 +164,10 @@ namespace FileMetadataAssociationManager
                 foreach (Extension ext in SelectedExtensions)
                 {
                     ext.SetupHandlerForExtension(SelectedProfile, true);
+
+                    if (ext.PropertyHandlerState == HandlerState.ProfileOnly)
+                        MessageBox.Show(string.Format(LocalizedMessages.WindowsWontExtendHandler, ext.Name), 
+                            LocalizedMessages.SetupHandler);
                 }
             }
 
@@ -242,7 +246,9 @@ namespace FileMetadataAssociationManager
                         break;
                     }
                 }
-                else if (e.PropertyHandlerState == HandlerState.Ours || e.PropertyHandlerState == HandlerState.Chained)
+                else if (e.PropertyHandlerState == HandlerState.Ours || 
+                    e.PropertyHandlerState == HandlerState.Chained ||
+                    e.PropertyHandlerState == HandlerState.ProfileOnly)
                 {
                     if (handlersSelected == null)
                         handlersSelected = HandlerSet.Ours;

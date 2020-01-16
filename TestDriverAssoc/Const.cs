@@ -15,7 +15,10 @@ namespace TestDriverAssoc
         const string OurPropertyHandlerGuid32 = "{60211757-EF87-465e-B6C1-B37CF98295F9}";
         const string OurContextHandlerGuid64 = "{28D14D00-2D80-4956-9657-9D50C8BB47A5}";
         const string OurContextHandlerGuid32 = "{DA38301B-BE91-4397-B2C8-E27A0BD80CC5}";
+        const string OurExportContextHandlerGuid64 = "{DE4C4CAF-C564-4EEA-9FF7-C46FB8023818}";
+        const string OurExportContextHandlerGuid32 = "{5A677F18-527D-42B3-BAA0-9785D3A8256F}";
         const string OtherPropertyHandlerGuid = "{a38b883c-1682-497e-97b0-0a3a9e801682}";  // Windows image
+        const string MkvPropertyHandlerGuid = "{C591F150-4106-4141-B5C1-30B2101453BD}";
 
         public const string FullDetailsValueName = "FullDetails";
         public const string PreviewDetailsValueName = "PreviewDetails";
@@ -31,9 +34,11 @@ namespace TestDriverAssoc
         public static string OurPropertyHandlerGuid { get { return OurPropertyHandlerGuid64; } }
         public static string OurPropertyHandlerGuid32bit { get { return OurPropertyHandlerGuid32; } }
         public static string OurContextHandlerGuid { get { return OurContextHandlerGuid64; } }
+        public static string OurExportContextHandlerGuid { get { return OurExportContextHandlerGuid64; } }
 #elif x86
         public static string OurPropertyHandlerGuid { get { return OurPropertyHandlerGuid32; } }
         public static string OurContextHandlerGuid { get { return OurContextHandlerGuid32; } }
+        public static string OurExportContextHandlerGuid { get { return OurExportContextHandlerGuid32; } }
 #endif
         const string FullDetailsOfficeProfile = "prop:System.PropGroup.Description;System.Title;System.Subject;System.Keywords;System.Category;System.Comment;System.Rating;System.PropGroup.Origin;System.Author;System.Document.LastAuthor;System.Document.RevisionNumber;System.Document.Version;System.ApplicationName;System.Company;System.Document.Manager;System.Document.DateCreated;System.Document.DateSaved;System.Document.DatePrinted;System.Document.TotalEditingTime;System.PropGroup.Content;System.ContentStatus;System.ContentType;System.Document.PageCount;System.Document.WordCount;System.Document.CharacterCount;System.Document.LineCount;System.Document.ParagraphCount;System.Document.Template;System.Document.Scale;System.Document.LinksDirty;System.Language;System.PropGroup.FileSystem;System.ItemNameDisplay;System.ItemType;System.ItemFolderPathDisplay;System.DateCreated;System.DateModified;System.Size;System.FileAttributes;System.OfflineAvailability;System.OfflineStatus;System.SharedWith;System.FileOwner;System.ComputerName";
         const string PreviewDetailsOfficeProfile = "prop:*System.DateModified;System.Author;System.Keywords;System.Rating;*System.Size;System.Title;System.Comment;System.Category;*System.Document.PageCount;System.ContentStatus;System.ContentType;*System.OfflineAvailability;*System.OfflineStatus;System.Subject;*System.DateCreated;*System.SharedWith";
@@ -42,6 +47,13 @@ namespace TestDriverAssoc
         const string FullDetailsSimpleProfile = "prop:System.PropGroup.Description;System.Title;System.Subject;System.Keywords;System.Category;System.Comment;System.Rating;System.PropGroup.Origin;System.Author;System.Document.RevisionNumber";
         const string PreviewDetailsSimpleProfile = "prop:System.Title;System.Subject;System.Keywords;System.Category;System.Comment;System.Rating;System.Author;System.Document.RevisionNumber";
         const string InfoTipSimpleProfile = "prop:System.ItemTypeText;System.Size;System.DateModified;System.Comment";
+
+        const string FullDetailsMkv = "prop:System.PropGroup.Description;System.Title;System.Media.SubTitle;System.Rating;System.Keywords;System.Comment;System.PropGroup.Video;System.Media.Duration;System.Video.FrameWidth;System.Video.FrameHeight;System.Video.EncodingBitrate;System.Video.TotalBitrate;System.Video.FrameRate;System.PropGroup.Audio;System.Audio.EncodingBitrate;System.Audio.ChannelCount;System.Audio.SampleRate;System.PropGroup.Media;System.Music.Artist;System.Media.Year;System.Music.Genre;System.PropGroup.Origin;System.Video.Director;System.Media.Producer;System.Media.Writer;System.Media.Publisher;System.Media.ContentDistributor;System.Media.DateEncoded;System.Media.EncodedBy;System.Media.AuthorUrl;System.Media.PromotionUrl;System.Copyright;System.PropGroup.Content;System.ParentalRating;System.ParentalRatingReason;System.Music.Composer;System.Music.Conductor;System.Music.Period;System.Music.Mood;System.Music.PartOfSet;System.Music.InitialKey;System.Music.BeatsPerMinute;System.DRM.IsProtected;System.PropGroup.FileSystem;System.ItemNameDisplay;System.ItemType;System.ItemFolderPathDisplay;System.Size;System.DateCreated;System.DateModified;System.FileAttributes;System.OfflineAvailability;System.OfflineStatus;System.SharedWith;System.FileOwner;System.ComputerName";
+        const string PreviewDetailsMkv = "prop:*System.Title;*System.Media.Duration;*System.Size;*System.Video.FrameWidth;*System.Video.FrameHeight;System.Rating;*System.Keywords;*System.Comment;*System.Music.Artist;*System.Music.Genre;*System.ParentalRating;*System.OfflineAvailability;*System.OfflineStatus;*System.DateModified;*System.DateCreated;*System.SharedWith;*System.Media.SubTitle;*System.Media.Year;*System.Video.FrameRate;*System.Video.EncodingBitrate;*System.Video.TotalBitrate";
+        const string InfoTipMkv = "prop:System.ItemType;System.Size;System.Media.Duration;System.OfflineAvailability";
+        const string FullDetailsMkvAndSimpleProfile = "prop:System.PropGroup.Description;System.Title;System.Media.SubTitle;System.Rating;System.Keywords;System.Comment;System.Subject;System.Category;System.PropGroup.Video;System.Media.Duration;System.Video.FrameWidth;System.Video.FrameHeight;System.Video.EncodingBitrate;System.Video.TotalBitrate;System.Video.FrameRate;System.PropGroup.Audio;System.Audio.EncodingBitrate;System.Audio.ChannelCount;System.Audio.SampleRate;System.PropGroup.Media;System.Music.Artist;System.Media.Year;System.Music.Genre;System.PropGroup.Origin;System.Video.Director;System.Media.Producer;System.Media.Writer;System.Media.Publisher;System.Media.ContentDistributor;System.Media.DateEncoded;System.Media.EncodedBy;System.Media.AuthorUrl;System.Media.PromotionUrl;System.Copyright;System.Author;System.Document.RevisionNumber;System.PropGroup.Content;System.ParentalRating;System.ParentalRatingReason;System.Music.Composer;System.Music.Conductor;System.Music.Period;System.Music.Mood;System.Music.PartOfSet;System.Music.InitialKey;System.Music.BeatsPerMinute;System.DRM.IsProtected;System.PropGroup.FileSystem;System.ItemNameDisplay;System.ItemType;System.ItemFolderPathDisplay;System.Size;System.DateCreated;System.DateModified;System.FileAttributes;System.OfflineAvailability;System.OfflineStatus;System.SharedWith;System.FileOwner;System.ComputerName";
+        const string PreviewDetailsMkvAndSimpleProfile = "prop:*System.Title;*System.Media.Duration;*System.Size;*System.Video.FrameWidth;*System.Video.FrameHeight;System.Rating;*System.Keywords;*System.Comment;*System.Music.Artist;*System.Music.Genre;*System.ParentalRating;*System.OfflineAvailability;*System.OfflineStatus;*System.DateModified;*System.DateCreated;*System.SharedWith;*System.Media.SubTitle;*System.Media.Year;*System.Video.FrameRate;*System.Video.EncodingBitrate;*System.Video.TotalBitrate;System.Subject;System.Category;System.Author;System.Document.RevisionNumber";
+        const string InfoTipMkvAndSimpleProfile = "prop:System.ItemType;System.Size;System.Media.Duration;System.OfflineAvailability;System.ItemTypeText;System.DateModified;System.Comment";
 
         //const string FullDetailsCustomProfile = "prop:System.PropGroup.Description;System.Keywords;System.Category;System.Comment;System.Rating;System.PropGroup.Origin;System.Author";
         //const string PreviewDetailsCustomProfile = "prop:System.Keywords;System.Category;System.Comment;System.Rating;System.Author";
@@ -300,6 +312,35 @@ namespace TestDriverAssoc
 #if x64
             PropertyHandler32 = OurPropertyHandlerGuid32,
             ChainedPropertyHandler32 = OtherPropertyHandlerGuid,
+#endif
+        };
+        public static RegState V15ExtendedMkv = new RegState
+        {
+            SystemFullDetails = FullDetailsSimpleProfile,
+            SystemPreviewDetails = PreviewDetailsSimpleProfile,
+            SystemInfoTip = InfoTipSimpleProfile,
+            SystemOldFullDetails = FullDetailsMkv,
+            SystemOldPreviewDetails = PreviewDetailsMkv,
+            SystemOldInfoTip = InfoTipMkv,
+            SystemContextMenuHandler = OurExportContextHandlerGuid,
+            PropertyHandler = MkvPropertyHandlerGuid,
+#if x64
+            PropertyHandler32 = MkvPropertyHandlerGuid,
+#endif
+        };
+        public static RegState V15ExtendedMergedMkv = new RegState
+        {
+            SystemFullDetails = FullDetailsMkvAndSimpleProfile,
+            SystemPreviewDetails = PreviewDetailsMkvAndSimpleProfile,
+            SystemInfoTip = InfoTipMkvAndSimpleProfile,
+            SystemOldFullDetails = FullDetailsMkv,
+            SystemOldPreviewDetails = PreviewDetailsMkv,
+            SystemOldInfoTip = InfoTipMkv,
+            SystemCustomProfile = ".mkv",
+            SystemContextMenuHandler = OurExportContextHandlerGuid,
+            PropertyHandler = MkvPropertyHandlerGuid,
+#if x64
+            PropertyHandler32 = MkvPropertyHandlerGuid,
 #endif
         };
     }

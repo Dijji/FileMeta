@@ -6,7 +6,7 @@ Also thanks to Alek Davis for the 32/64-bit strategy: http://alekdavis.blogspot.
 -->
 
 <?define ProductName = "File Metadata" ?>
-<?define ProductVersion = "1.5" ?>
+<?define ProductVersion = "1.6" ?>
 
 <?if $(var.Platform) = x64 ?>
 <?define ProductDisplayName = "$(var.ProductName) 64-bit" ?>
@@ -34,7 +34,7 @@ Also thanks to Alek Davis for the 32/64-bit strategy: http://alekdavis.blogspot.
 
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
 	<Product Id="$(var.ProductId)" Name="$(var.ProductDisplayName) (v$(var.ProductVersion))"
-           Language="1033" Version="1.5.6128.0" Manufacturer="Dijji" UpgradeCode="$(var.ProductUpgradeCode)">
+           Language="1033" Version="1.6.7318.0" Manufacturer="Dijji" UpgradeCode="$(var.ProductUpgradeCode)">
 		<Package InstallerVersion="400" Compressed="yes" InstallScope="perMachine" />
     <Condition Message="[ProductName] is for Windows Vista, Windows Server 2008, or higher.">
       <![CDATA[Installed OR (VersionNT >= 600)]]>

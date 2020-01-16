@@ -134,6 +134,7 @@
     <ClCompile Include="..\CommandLine\XmlHelpers.cpp" />
     <ClCompile Include="ContextMenuHandler.cpp" />
     <ClCompile Include="Dll.cpp" />
+    <ClCompile Include="ExportContextMenuHandler.cpp" />
     <ClCompile Include="RegisterExtension.cpp" />
   </ItemGroup>
   <ItemGroup>
