@@ -18,7 +18,7 @@ namespace CommandLineAssociationManager
                 "Usage:",
                 "",
                 "   FileMetaAssoc.exe {-l|-a|-r|-h} [-p=<profile name>] ",
-                "                     [-d=<definition file name>] [<extension> ...]",
+                "                     [-d=<definition file name>] [-m] [<extension> ...]",
                 "",
                 "Where:",
                 "",
