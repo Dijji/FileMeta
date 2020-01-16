@@ -1,6 +1,6 @@
 # File Metadata
 
-Version 1.6 is now the recommended [release](../../releases/tag/v1.6). All [documentation](../../wiki) has been updated to reflect the changes, which are described fully in the release notes. The most important change is a revision to how
+**Latest:** Version 1.6 is now the recommended [release](../../releases/tag/v1.6). All [documentation](../../wiki) has been updated to reflect the changes, which are described fully in the release notes. The most important change is a revision to how
 File Meta works when a handler is already present, to allow for the fact that Windows 10 does not allow some of its built-in handlers to be substituted. I recommend reading [Using the File Meta Association Manager](../../wiki/Using-the-File-Meta-Association-Manager) to make sure you understand exactly what is going to happen when a handler is already present, and how to make it work for you.
 
 In Windows XP, Explorer could see and edit metadata (for example comments or tags) for any type of file. In Vista and later, this has been possible only for certain types of file, such as Office documents, JPEGs and MP3s. 
