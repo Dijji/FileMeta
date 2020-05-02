@@ -204,7 +204,8 @@ HRESULT CPropertyHandler::GetCount(DWORD *pcProps)
 	catch (...)
 	{
 		WriteLog(L"Unknown exception in GetCount");
-		return E_FAIL;
+		throw;
+		//return E_FAIL;
 	}
 }
 
@@ -213,6 +214,7 @@ HRESULT CPropertyHandler::GetAt(DWORD iProp, PROPERTYKEY *pkey)
 	try
 	{
 		WriteLog(L"GetAt called for index %d", iProp);
+		//int * p = 0; *p = 1; // generate test access violation
 		*pkey = PKEY_Null;
 		HRESULT hr = OpenStore(FALSE);
 		// We take chained properties first because their number remains constant,
@@ -231,7 +233,8 @@ HRESULT CPropertyHandler::GetAt(DWORD iProp, PROPERTYKEY *pkey)
 	catch (...)
 	{
 		WriteLog(L"Unknown exception in GetAt");
-		return E_FAIL;
+		throw;
+		//return E_FAIL;
 	}
 }
 
@@ -259,7 +262,8 @@ HRESULT CPropertyHandler::GetValue(REFPROPERTYKEY key, PROPVARIANT *pPropVar)
 	catch (...)
 	{
 		WriteLog(L"Unknown exception in GetValue");
-		return E_FAIL;
+		throw;
+		//return E_FAIL;
 	}
 }
 
@@ -279,7 +283,8 @@ HRESULT CPropertyHandler::SetValue(REFPROPERTYKEY key, REFPROPVARIANT propVar)
 	catch (...)
 	{
 		WriteLog(L"Unknown exception in SetValue");
-		return E_FAIL;
+		throw;
+		//return E_FAIL;
 	}
 }
 
@@ -297,7 +302,8 @@ HRESULT CPropertyHandler::Commit()
 	catch (...)
 	{
 		WriteLog(L"Unknown exception in Commit");
-		return E_FAIL;
+		throw;
+		//return E_FAIL;
 	}
 }
 
@@ -442,7 +448,8 @@ HRESULT CPropertyHandler::Initialize(LPCWSTR pszFilePath, DWORD grfMode)
 	catch (...)
 	{
 		WriteLog(L"Unknown exception in Initialize");
-		return E_FAIL;
+		throw;
+		//return E_FAIL;
 	}
 }
 
