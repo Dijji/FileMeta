@@ -101,8 +101,11 @@ void format(std::string& a_string, const char* fmt, ...)
 	va_list vl;
 	va_start(vl, fmt);
 	int size = _vscprintf(fmt, vl);
-	a_string.resize(++size);
-	vsnprintf_s((char*)a_string.data(), size, _TRUNCATE, fmt, vl);
+	if (size > 0)
+	{
+		a_string.resize(++size);
+		vsnprintf_s((char*)a_string.data(), size, _TRUNCATE, fmt, vl);
+	}
 	va_end(vl);
 }
 
@@ -149,16 +152,6 @@ BOOL DirectoryExists(std::string dirName) {
 	return (attribs & FILE_ATTRIBUTE_DIRECTORY);
 }
 
-void WriteLog(const char* fmt, ...)
-{
-	// Format the message
-	std::string message;
-	va_list vl;
-	va_start(vl, fmt);
-	format(message, fmt, vl);
-	va_end(vl);
-	WriteLogMsg(message);
-}
 
 void WriteLogMsg(const std::string& message)
 {
@@ -172,6 +165,16 @@ void WriteLogMsg(const std::string& message)
 	std::ofstream ofs(filePath.c_str(), std::ios_base::out | std::ios_base::app);
 	ofs << now << '\t' << message << '\n';
 	ofs.close();
+}
+void WriteLog(const char* fmt, ...)
+{
+	// Format the message
+	std::string message;
+	va_list vl;
+	va_start(vl, fmt);
+	format(message, fmt, vl);
+	va_end(vl);
+	WriteLogMsg(message);
 }
 
 HRESULT CPropertyHandler::GetCount(DWORD *pcProps)
@@ -345,7 +348,7 @@ HRESULT CPropertyHandler::Initialize(LPCWSTR pszFilePath, DWORD grfMode)
 	try
 	{
 		HRESULT hr = S_OK;
-		WriteLog("Initialize for %S mode=%s", pszFilePath, grfMode == 0 ? "Read" : "Read/Write");
+		WriteLog("Initialize for '%S' mode=s", pszFilePath);// , grfMode == 0 ? "Read" : "Read/Write");
 
 		wcscpy_s(_pszFilePath, MAX_PATH, pszFilePath);
 
@@ -376,7 +379,7 @@ HRESULT CPropertyHandler::Initialize(LPCWSTR pszFilePath, DWORD grfMode)
 					CLSID clsid;
 					if (SUCCEEDED(CLSIDFromString(szBuf, &clsid)))
 					{
-						WriteLogMsg("Attempting to initialise chained property store read only");
+						WriteLog("Attempting to initialize read-only chained property handler: %s", FormatGuid(clsid));
 						HRESULT hr2 = CoCreateInstance(clsid, NULL, CLSCTX_ALL, IID_IPropertyStore, (void **)&_pChainedPropStore);
 						if (SUCCEEDED(hr2))
 						{
