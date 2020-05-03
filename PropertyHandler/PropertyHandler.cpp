@@ -94,7 +94,7 @@ void WriteLog(const WCHAR* fmt, ...)
 	if (!DirectoryExists(path) &&
 		!CreateDirectory(path.c_str(), NULL))
 		return; // Maybe throw an exception?
-	std::wstring filePath = path + L"\\log_" + getCurrentDateTime(L"date") + L".txt";
+	std::wstring filePath = path + L"\\log_" + getCurrentDateTime(L"date") + L".log";
 	std::wofstream ofs(filePath.c_str(), std::ios_base::out | std::ios_base::app);
 	std::wstring now = getCurrentDateTime(L"now");
 	ofs << now << L"  " << buffer << L'\n';
