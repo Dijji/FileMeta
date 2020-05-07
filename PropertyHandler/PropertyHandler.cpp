@@ -193,11 +193,19 @@ HRESULT CPropertyHandler::GetCount(DWORD *pcProps)
 	try
 	{
 		WriteLog(L"GetCount called");
-		*pcProps = 0;
 		HRESULT hr = OpenStore(FALSE);
-		hr = SUCCEEDED(hr) ? _pStore->GetCount(pcProps) : hr;
 		if (SUCCEEDED(hr))
-			*pcProps += ChainedPropCount();
+		{
+			hr = _pStore->GetCount(pcProps);
+			if (SUCCEEDED(hr))
+			{
+				DWORD chained = ChainedPropCount();
+				if (chained > 0)
+					*pcProps += chained;
+			}
+		}
+		else
+			*pcProps = 0;
 		WriteLog(L"GetCount returned 0x%08X with value %u", hr, *pcProps);
 		return hr;
 	}
@@ -215,17 +223,21 @@ HRESULT CPropertyHandler::GetAt(DWORD iProp, PROPERTYKEY *pkey)
 	{
 		WriteLog(L"GetAt called for index %d", iProp);
 		//int * p = 0; *p = 1; // generate test access violation
-		*pkey = PKEY_Null;
 		HRESULT hr = OpenStore(FALSE);
 		// We take chained properties first because their number remains constant,
 		// whereas the number of File Meta properties varies as they are set,
 		// which would mean that if we took File Meta properties first,
 		// repeated calls with the same index into the chained properties could return different key values
-		hr = SUCCEEDED(hr) ?
-			(iProp < ChainedPropCount()) ?
-			_pChainedPropStore->GetAt(iProp, pkey) :
-			_pStore->GetAt(iProp - ChainedPropCount(), pkey) :
-			hr;
+		if (SUCCEEDED(hr))
+		{
+			if (iProp < ChainedPropCount()) 
+				hr = _pChainedPropStore->GetAt(iProp, pkey);
+			else
+				hr = _pStore->GetAt(iProp - ChainedPropCount(), pkey);
+		}
+		else
+			*pkey = PKEY_Null;
+
 		WriteLog(L"GetAt returned 0x%08X with value %s = %s %d", hr, PropName(*pkey).c_str(),
 			FormatGuid(pkey->fmtid).c_str(), pkey->pid);
 		return hr;
@@ -242,21 +254,33 @@ HRESULT CPropertyHandler::GetValue(REFPROPERTYKEY key, PROPVARIANT *pPropVar)
 {
 	try
 	{
-		WriteLog(L"GetValue called for %s = %s %d", PropName(key).c_str(), FormatGuid(key.fmtid).c_str(), key.pid);
-		PropVariantInit(pPropVar);
+		WriteLog(L"GetValue called for %s = %s %d pVar = 0x%X", PropName(key).c_str(), FormatGuid(key.fmtid).c_str(), key.pid, pPropVar);
 		HRESULT hr = OpenStore(FALSE);
-		// Take the File Meta property value first, and if there isn't one,
-		// see if this is a check for the software product name, which we use as a marker, or if not
-		// try for a chained property value
-		hr = SUCCEEDED(hr) ? _pStore->GetValue(key, pPropVar) : hr;
-		if (SUCCEEDED(hr) && pPropVar->vt == VT_EMPTY && key == PKEY_Software_ProductName)
-			hr = InitPropVariantFromString(L"FileMetadata", pPropVar);
-		else if (_pChainedPropStore != NULL && SUCCEEDED(hr) && pPropVar->vt == VT_EMPTY)
+		
+		if (SUCCEEDED(hr))
 		{
-			WriteLog(L"Value will be taken from chained property store");
-			hr = _pChainedPropStore->GetValue(key, pPropVar);
+			// Take the File Meta property value first, and if there isn't one,
+			// see if this is a check for the software product name, which we use as a marker, or if not
+			// try for a chained property value
+			hr = _pStore->GetValue(key, pPropVar);
+			if (SUCCEEDED(hr))
+			{
+				if (pPropVar->vt == VT_EMPTY)
+				{
+					if (key == PKEY_Software_ProductName)
+						hr = InitPropVariantFromString(L"FileMetadata", pPropVar);
+					else if (_pChainedPropStore != NULL)
+					{
+						WriteLog(L"Value will be taken from chained property store");
+						hr = _pChainedPropStore->GetValue(key, pPropVar);
+					}
+				}
+			}
 		}
-		WriteLog(L"GetValue returned 0x%08X with value '%s'", hr, FormatVariant(*pPropVar).c_str());
+		else
+			PropVariantClear(pPropVar);
+
+		WriteLog(L"GetValue returned 0x%08X with value '%s' pVar = 0x%X", hr, FormatVariant(*pPropVar).c_str(), pPropVar);
 		return hr;
 	}
 	catch (...)
@@ -309,6 +333,7 @@ HRESULT CPropertyHandler::Commit()
 
 HRESULT CPropertyHandler::OpenStore(BOOL bReadWrite)
 {
+	bReadWrite = TRUE; // Force to always reopen read/write at the moment, to avoid switches
     HRESULT hr = E_UNEXPECTED;
 
 	if (_pStore)
@@ -316,8 +341,8 @@ HRESULT CPropertyHandler::OpenStore(BOOL bReadWrite)
 		// If open and read/write, or only read wanted, we're good
 		if (_bReadWrite || !bReadWrite)
 			return S_OK;
-		// Must be open read but read/write wanted - close ready to re-open
-		else 
+		// Must be open read but read/write wanted - re-open the store
+		else
 			SafeRelease(&_pStore);
 	}
 
@@ -356,7 +381,7 @@ DWORD CPropertyHandler::ChainedPropCount()
 		{
 			WriteLog(L"Calling chained GetCount");
 			_bHaveChainedPropCount = SUCCEEDED(_pChainedPropStore->GetCount(&_cChainedPropCount));
-			WriteLog(L"Chains GetCount returned %u", _cChainedPropCount);
+			WriteLog(L"Chained GetCount returned %u", _cChainedPropCount);
 		}
 		else
 			_bHaveChainedPropCount = TRUE;
@@ -381,9 +406,12 @@ HRESULT CPropertyHandler::Initialize(LPCWSTR pszFilePath, DWORD grfMode)
 			v_pfnStgOpenStorageEx = ((fRunningOnNT) ? (PFN_STGOPENSTGEX)GetProcAddress(GetModuleHandle(L"OLE32"), "StgOpenStorageEx") : NULL);
 		}
 
+		// In case of multiple calls to Initialize
+		SafeRelease(&_pStore);
+		SafeRelease(&_pChainedPropStore);
+
 		// Check if a chained property handler is configured, and if there is one, load and initialize it too.
 		// This is simplified by the fact that we only ever open a chained property handler read-only
-		SafeRelease(&_pChainedPropStore);
 		PCWSTR pszExt = PathFindExtension(_pszFilePath);
 		if (*pszExt)
 		{
