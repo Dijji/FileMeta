@@ -104,10 +104,7 @@ void WriteLog(const WCHAR* fmt, ...)
 	ofs.close();
 }
 #else
-#define WriteLog (...) ((void)0)
-//#define WriteLog (fmt, a) ((void)0)
-//#define WriteLog (fmt, a, b) ((void)0)
-//#define WriteLog (fmt, a, b, c) ((void)0)
+#define WriteLog(...) ((void)0)
 #endif // Logging
 
 
