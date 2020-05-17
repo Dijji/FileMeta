@@ -8,6 +8,8 @@
 #include "RegisterExtension.h"
 
 #pragma region Logging support functions
+#define LOGGING = 1
+#ifdef LOGGING
 
 #include <strsafe.h>
 #include <iostream>
@@ -101,6 +103,12 @@ void WriteLog(const WCHAR* fmt, ...)
 	ofs.flush();
 	ofs.close();
 }
+#else
+#define WriteLog (...) ((void)0)
+//#define WriteLog (fmt, a) ((void)0)
+//#define WriteLog (fmt, a, b) ((void)0)
+//#define WriteLog (fmt, a, b, c) ((void)0)
+#endif // Logging
 
 
 #pragma endregion // logging functions 
@@ -333,42 +341,10 @@ HRESULT CPropertyHandler::Commit()
 
 HRESULT CPropertyHandler::OpenStore(BOOL bReadWrite)
 {
-	bReadWrite = TRUE; // Force to always reopen read/write at the moment, to avoid switches
-    HRESULT hr = E_UNEXPECTED;
-
 	if (_pStore)
-	{
-		// If open and read/write, or only read wanted, we're good
-		if (_bReadWrite || !bReadWrite)
-			return S_OK;
-		// Must be open read but read/write wanted - re-open the store
-		else
-			SafeRelease(&_pStore);
-	}
-
-	if (v_pfnStgOpenStorageEx)
-	{
-		IPropertySetStorage* pPropSetStg = NULL;
-		DWORD dwReadWrite = bReadWrite ? STGM_READWRITE : STGM_READ;
-
-		WriteLog(L"Opening property store %s", bReadWrite ? L"Read/Write" : L"Read only");
-		hr = (v_pfnStgOpenStorageEx)(_pszFilePath, dwReadWrite | STGM_SHARE_EXCLUSIVE, STGFMT_FILE, 0, NULL, 0, 
-				IID_IPropertySetStorage, (void**)&pPropSetStg);
-
-		if (SUCCEEDED(hr))
-			// To make IPropertyStore work for Write, it is necessary to use STGM_READWRITE, which the MS documentation says
-			// explicitly will not work.  The recommended STGM_READ fails with E_ACCESSDENIED on Write and Commit, which
-			// is what you would expect. The only bug appears to be in the documentation.
-			hr = PSCreatePropertyStoreFromPropertySetStorage(pPropSetStg, dwReadWrite, IID_IPropertyStore, (void **)&_pStore);
-
-		SafeRelease(&pPropSetStg);
-
-		WriteLog(L"Open property store returned 0x%08X", hr);
-		if (SUCCEEDED(hr))
-			_bReadWrite = bReadWrite;
-	}
-
-	return hr;
+		return S_OK;
+	else
+		return E_UNEXPECTED;
 }
 
 DWORD CPropertyHandler::ChainedPropCount()
@@ -394,9 +370,7 @@ HRESULT CPropertyHandler::Initialize(LPCWSTR pszFilePath, DWORD grfMode)
 	try
 	{
 		HRESULT hr = S_OK;
-		WCHAR buffer[250];
-		swprintf_s(buffer, 250, L"Initialize for '%s' mode=%s", pszFilePath, (grfMode == 0 ? L"Read" : L"Read/Write"));
-		WriteLog(L"Initialize for '%s' mode=%s", pszFilePath, (grfMode == 0 ? L"Read" : L"Read/Write"));
+		WriteLog(L"Initialize for '%s' mode=0x%X", pszFilePath, grfMode);
 
 		wcscpy_s(_pszFilePath, MAX_PATH, pszFilePath);
 
@@ -410,10 +384,36 @@ HRESULT CPropertyHandler::Initialize(LPCWSTR pszFilePath, DWORD grfMode)
 		SafeRelease(&_pStore);
 		SafeRelease(&_pChainedPropStore);
 
+		if (v_pfnStgOpenStorageEx)
+		{
+			IPropertySetStorage* pPropSetStg = NULL;
+			BOOL bReadWrite = (grfMode & STGM_READWRITE) == STGM_READWRITE;
+
+			WriteLog(L"Opening property store %s", bReadWrite ? L"Read/Write" : L"Read only");
+			hr = (v_pfnStgOpenStorageEx)(_pszFilePath, grfMode /*| STGM_SHARE_EXCLUSIVE*/, STGFMT_FILE, 0, NULL, 0,
+				IID_IPropertySetStorage, (void**)&pPropSetStg);
+
+			if (SUCCEEDED(hr))
+				// To make IPropertyStore work for Write, it is necessary to use STGM_READWRITE, which the MS documentation says
+				// explicitly will not work.  The recommended STGM_READ fails with E_ACCESSDENIED on Write and Commit, which
+				// is what you would expect. The only bug appears to be in the documentation.
+				hr = PSCreatePropertyStoreFromPropertySetStorage(pPropSetStg, grfMode, IID_IPropertyStore, (void **)&_pStore);
+
+			SafeRelease(&pPropSetStg);
+
+			WriteLog(L"Open property store returned 0x%08X", hr);
+			if (SUCCEEDED(hr))
+				_bReadWrite = bReadWrite;
+			else
+				_pStore = NULL;
+		}
+		else
+			hr = E_UNEXPECTED;
+
 		// Check if a chained property handler is configured, and if there is one, load and initialize it too.
 		// This is simplified by the fact that we only ever open a chained property handler read-only
 		PCWSTR pszExt = PathFindExtension(_pszFilePath);
-		if (*pszExt)
+		if (SUCCEEDED(hr) && *pszExt)
 		{
 			// Chained property handlers are configured in a Chained property value added to the standard property system key
 			HKEY propertyHandlerKey;
