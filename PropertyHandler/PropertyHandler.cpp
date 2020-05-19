@@ -276,7 +276,7 @@ HRESULT CPropertyHandler::GetValue(REFPROPERTYKEY key, PROPVARIANT *pPropVar)
 						hr = InitPropVariantFromString(L"FileMetadata", pPropVar);
 					else if (_pChainedPropStore != NULL)
 					{
-						WriteLog(L"Value will be taken from chained property store");
+						WriteLog(L"Supplying value from the chained property store");
 						hr = _pChainedPropStore->GetValue(key, pPropVar);
 					}
 				}
@@ -386,6 +386,12 @@ HRESULT CPropertyHandler::Initialize(LPCWSTR pszFilePath, DWORD grfMode)
 			IPropertySetStorage* pPropSetStg = NULL;
 			BOOL bReadWrite = (grfMode & STGM_READWRITE) == STGM_READWRITE;
 
+			if (grfMode == (STGM_READ | STGM_SHARE_DENY_NONE))
+			{
+				WriteLog(L"Upgrading deny none to deny write so that the indexing service works");
+				grfMode = (STGM_READ | STGM_SHARE_DENY_WRITE);
+			}
+
 			WriteLog(L"Opening property store %s", bReadWrite ? L"Read/Write" : L"Read only");
 			hr = (v_pfnStgOpenStorageEx)(_pszFilePath, grfMode /*| STGM_SHARE_EXCLUSIVE*/, STGFMT_FILE, 0, NULL, 0,
 				IID_IPropertySetStorage, (void**)&pPropSetStg);
@@ -427,7 +433,7 @@ HRESULT CPropertyHandler::Initialize(LPCWSTR pszFilePath, DWORD grfMode)
 					CLSID clsid;
 					if (SUCCEEDED(CLSIDFromString(szBuf, &clsid)))
 					{
-						WriteLog(L"Attempting to initialize read-only chained property handler: %s", FormatGuid(clsid).c_str());
+						WriteLog(L"Initializing read-only chained property handler: %s", FormatGuid(clsid).c_str());
 						HRESULT hr2 = CoCreateInstance(clsid, NULL, CLSCTX_ALL, IID_IPropertyStore, (void **)&_pChainedPropStore);
 						if (SUCCEEDED(hr2))
 						{
