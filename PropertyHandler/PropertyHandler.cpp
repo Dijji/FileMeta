@@ -386,14 +386,15 @@ HRESULT CPropertyHandler::Initialize(LPCWSTR pszFilePath, DWORD grfMode)
 			IPropertySetStorage* pPropSetStg = NULL;
 			BOOL bReadWrite = (grfMode & STGM_READWRITE) == STGM_READWRITE;
 
+			DWORD grfModeStorage = grfMode;
 			if (grfMode == (STGM_READ | STGM_SHARE_DENY_NONE))
 			{
-				WriteLog(L"Upgrading deny none to deny write so that the indexing service works");
-				grfMode = (STGM_READ | STGM_SHARE_DENY_WRITE);
+				WriteLog(L"Upgrading storage from deny none to deny write so that the indexing service works");
+				grfModeStorage = (STGM_READ | STGM_SHARE_DENY_WRITE);
 			}
 
 			WriteLog(L"Opening property store %s", bReadWrite ? L"Read/Write" : L"Read only");
-			hr = (v_pfnStgOpenStorageEx)(_pszFilePath, grfMode /*| STGM_SHARE_EXCLUSIVE*/, STGFMT_FILE, 0, NULL, 0,
+			hr = (v_pfnStgOpenStorageEx)(_pszFilePath, grfModeStorage, STGFMT_FILE, 0, NULL, 0,
 				IID_IPropertySetStorage, (void**)&pPropSetStg);
 
 			if (SUCCEEDED(hr))
