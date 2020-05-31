@@ -68,3 +68,6 @@
 /CommandLineAssociationManager/CommandLineAssociationManager.csproj.user
 /doc
 /Releases
+/TestPropCollide/.vs
+/TestPropCollide/bin/Debug
+/TestPropCollide/obj
