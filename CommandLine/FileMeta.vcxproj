@@ -93,6 +93,10 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>wsetargv.obj;propsys.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <Manifest>
+      <AssemblyIdentity>Dijji.FileMeta.Utility, processorArchitecture=*, version=$(Version), type=win32</AssemblyIdentity>
+      <AdditionalManifestFiles>Manifest.xml</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -106,6 +110,10 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>wsetargv.obj;propsys.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <Manifest>
+      <AssemblyIdentity>Dijji.FileMeta.Utility, processorArchitecture=*, version=$(Version), type=win32</AssemblyIdentity>
+      <AdditionalManifestFiles>Manifest.xml</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -123,6 +131,10 @@
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>wsetargv.obj;propsys.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <Manifest>
+      <AssemblyIdentity>Dijji.FileMeta.Utility, processorArchitecture=*, version=$(Version), type=win32</AssemblyIdentity>
+      <AdditionalManifestFiles>Manifest.xml</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -140,6 +152,10 @@
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>wsetargv.obj;propsys.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <Manifest>
+      <AssemblyIdentity>Dijji.FileMeta.Utility, processorArchitecture=*, version=$(Version), type=win32</AssemblyIdentity>
+      <AdditionalManifestFiles>Manifest.xml</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="rapidxml.hpp" />
@@ -187,6 +203,9 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="FileMeta.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Xml Include="Manifest.xml" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
